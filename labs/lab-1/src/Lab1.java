@@ -8,9 +8,18 @@ public class Lab1 extends Thread {
     public static Semaphore east;
     private int trainId;
 
+    private int trainSpeed;
+    private static int simSpeed;
+
     public static void main(String[] args) {
-        Lab1 train1 = new Lab1(args, 1);
-        Lab1 train2 = new Lab1(args, 2);
+        if (args.length < 4) {
+            simSpeed = 100;
+        } else {
+            simSpeed = Integer.parseInt(args[3]);
+        }
+
+        Lab1 train1 = new Lab1(1, Integer.parseInt(args[1]));
+        Lab1 train2 = new Lab1(2, Integer.parseInt(args[2]));
 
         Lab1.east = new Semaphore(1, true);
         train1.start();
@@ -18,8 +27,9 @@ public class Lab1 extends Thread {
 
     }
 
-    public Lab1(String[] args, int id) {
+    public Lab1(int id, int speed) {
         trainId = id;
+        trainSpeed = speed;
     }
 
     public void run() {
@@ -41,5 +51,9 @@ public class Lab1 extends Thread {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    private void logic() throws CommandException, InterruptedException {
+
     }
 }
