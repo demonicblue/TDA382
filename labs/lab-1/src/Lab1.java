@@ -60,7 +60,7 @@ public class Lab1 extends Thread {
     }
 
     private void logic() throws CommandException, InterruptedException {
-        System.out.println("SUCH METHOD!");
+        System.err.println("SUCH METHOD!");
         SensorEvent event = tsim.getSensor(trainId);
         if(event.getYpos() == 16 && event.getYpos() == 7)
         {
@@ -68,12 +68,12 @@ public class Lab1 extends Thread {
             east.acquire();
             tsim.setSpeed(trainId, 100);
             tsim.setSwitch(17, 7, TSimInterface.SWITCH_LEFT);
-            System.out.println("Passing first sensor");
+            System.err.println("Passing first sensor");
             while(event.INACTIVE != 1) {
                 event = tsim.getSensor(trainId);
 
             }
-            System.out.println("Exited first sensor");
+            System.err.println("Exited first sensor");
         }
     }
 }
