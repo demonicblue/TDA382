@@ -37,7 +37,7 @@ public class Lab1 extends Thread {
 
     public void run() {
         try {
-            tsi.setSpeed(trainId, trainSpeed);
+            tsim.setSpeed(trainId, trainSpeed);
             /*while (true) {
                 SensorEvent event = tsi.getSensor(trainId);
                 if (event.getXpos() == 15 && event.getYpos() == 7) {
@@ -46,6 +46,7 @@ public class Lab1 extends Thread {
                     tsi.setSpeed(trainId, 10);
                 }
             }*/
+            logic();
 
 
         } catch (CommandException e) {
@@ -58,9 +59,18 @@ public class Lab1 extends Thread {
 
     private void logic() throws CommandException, InterruptedException {
         SensorEvent event = tsim.getSensor(trainId);
-        if(event.getYpos() == 16 && event.getYpos() == 7 && )
+        if(event.getYpos() == 16 && event.getYpos() == 7)
         {
+            tsim.setSpeed(trainId, 0);
+            east.acquire();
+            tsim.setSpeed(trainId, 100);
+            tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
+            System.out.println("Passing first sensor");
+            while(event.INACTIVE != 1) {
+                event = tsim.getSensor(trainId);
 
+            }
+            System.out.println("Exited first sensor");
         }
     }
 }
