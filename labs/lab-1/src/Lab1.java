@@ -11,6 +11,8 @@ public class Lab1 extends Thread {
     private int trainSpeed;
     private static int simSpeed;
 
+    private TSimInterface tsim;
+
     public static void main(String[] args) {
         if (args.length < 4) {
             simSpeed = 100;
@@ -30,20 +32,21 @@ public class Lab1 extends Thread {
     public Lab1(int id, int speed) {
         trainId = id;
         trainSpeed = speed;
+        tsim = TSimInterface.getInstance();
     }
 
     public void run() {
-        TSimInterface tsi = TSimInterface.getInstance();
         try {
-            tsi.setSpeed(1, 100);
-            while (true) {
+            tsi.setSpeed(trainId, trainSpeed);
+            /*while (true) {
                 SensorEvent event = tsi.getSensor(trainId);
                 if (event.getXpos() == 15 && event.getYpos() == 7) {
                     tsi.setSpeed(trainId, 0);
                     east.acquire();
                     tsi.setSpeed(trainId, 10);
                 }
-            }
+            }*/
+
 
         } catch (CommandException e) {
             e.printStackTrace();    // or only e.getMessage() for the error
@@ -54,6 +57,10 @@ public class Lab1 extends Thread {
     }
 
     private void logic() throws CommandException, InterruptedException {
+        SensorEvent event = tsim.getSensor(trainId);
+        if(event.getYpos() == 16 && event.getYpos() == 7 && )
+        {
 
+        }
     }
 }
