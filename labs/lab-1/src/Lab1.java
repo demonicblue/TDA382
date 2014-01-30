@@ -17,11 +17,11 @@ public class Lab1 extends Thread {
         if (args.length < 4) {
             simSpeed = 100;
         } else {
-            simSpeed = Integer.parseInt(args[3]);
+            simSpeed = Integer.parseInt(args[2]);
         }
 
-        Lab1 train1 = new Lab1(1, Integer.parseInt(args[1]));
-        Lab1 train2 = new Lab1(2, Integer.parseInt(args[2]));
+        Lab1 train1 = new Lab1(1, Integer.parseInt(args[0]));
+        Lab1 train2 = new Lab1(2, Integer.parseInt(args[1]));
 
         Lab1.east = new Semaphore(1, true);
         train1.start();
@@ -46,7 +46,9 @@ public class Lab1 extends Thread {
                     tsi.setSpeed(trainId, 10);
                 }
             }*/
-            logic();
+            while(true){
+                logic();
+            }
 
 
         } catch (CommandException e) {
@@ -58,13 +60,14 @@ public class Lab1 extends Thread {
     }
 
     private void logic() throws CommandException, InterruptedException {
+        System.out.println("SUCH METHOD!");
         SensorEvent event = tsim.getSensor(trainId);
         if(event.getYpos() == 16 && event.getYpos() == 7)
         {
             tsim.setSpeed(trainId, 0);
             east.acquire();
             tsim.setSpeed(trainId, 100);
-            tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
+            tsim.setSwitch(17, 7, TSimInterface.SWITCH_LEFT);
             System.out.println("Passing first sensor");
             while(event.INACTIVE != 1) {
                 event = tsim.getSensor(trainId);
