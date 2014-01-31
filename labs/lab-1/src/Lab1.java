@@ -63,34 +63,32 @@ public class Lab1 extends Thread {
     private void logic() throws CommandException, InterruptedException {
         System.err.println("SUCH METHOD!");
         while(true) {
-        SensorEvent event = tsim.getSensor(trainId);
-        if(event.getXpos() == 16 && event.getYpos() == 7)
-        {
-            if(direction == DOWN) {
-                System.err.println("First sensor?");
-                tsim.setSpeed(trainId, 0);
-                east.acquire();
-                last = east;
-                tsim.setSpeed(trainId, 100);
-                tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
-                System.err.println("Passing first sensor");
-            }
-        } else if (event.getXpos() == 16 && event.getYpos() == 9)) {
-            if (direction == DOWN) {
-                if(dual.tryAcquire()) {
-                    tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
-                } else {
-                    tsim.setSwitch(15, 9, TSimInterface.SWITCH_LEFT);
+            SensorEvent event = tsim.getSensor(trainId);
+            if(event.getXpos() == 16 && event.getYpos() == 7) {
+                if(direction == DOWN) {
+                    System.err.println("First sensor?");
+                    tsim.setSpeed(trainId, 0);
+                    east.acquire();
+                    last = east;
+                    tsim.setSpeed(trainId, 100);
+                    tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
+                    System.err.println("Passing first sensor");
+                }
+            } else if (event.getXpos() == 16 && event.getYpos() == 9) {
+                if (direction == DOWN) {
+                    if(dual.tryAcquire()) {
+                        tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
+                    } else {
+                        tsim.setSwitch(15, 9, TSimInterface.SWITCH_LEFT);
+                    }
+                }
+            } else if(event.getXpos() == 14 && event.getYpos() == 9) {
+                if(direction == DOWN) {
+                    while(event.getStatus() != SensorEvent.INACTIVE) {
+                        event = tsim.getSensor(trainId);
+                    }
                 }
             }
-        } else if(event.getXpos() == 14 && event.getYpos() == 9) {
-            if(direction == DOWN) {
-                while(event.getStatus() != TSimInterface.INACTIVE) {
-                    event = tsim.getSensor();
-                }
-            }
-        }
-
         } // end of while true
 
     }
