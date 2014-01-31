@@ -71,6 +71,7 @@ public class Lab1 extends Thread {
         System.err.println("SUCH METHOD!");
         while (true) {
             SensorEvent event = tsim.getSensor(trainId);
+            // Protect against dual events from same sensor
             if (event.getXpos() == lastXPos && event.getYpos() == lastYPos) {
                 continue;
             }
@@ -84,6 +85,7 @@ public class Lab1 extends Thread {
                 tsim.setSpeed(trainId, 0);
                 Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
                 trainSpeed = (-1) * trainSpeed;
+                direction = DOWN;
                 tsim.setSpeed(trainId, trainSpeed);
 
             } else if (event.getXpos() == 14 && event.getYpos() == 7) { //Entering east block from north.
@@ -113,6 +115,10 @@ public class Lab1 extends Thread {
                         if (event.getStatus() == SensorEvent.INACTIVE && event.getXpos() == lastXPos && event.getYpos() == lastYPos)
                             break;
                     }
+                } else { // UP
+                    if(last == dual)
+                        dual.release();
+                        last = null;
                 }
             } else if ((event.getXpos() == 12 && event.getYpos() == 9) || (event.getXpos() == 12 && event.getYpos() == 10)) {
                 //Leaving east block
@@ -123,9 +129,8 @@ public class Lab1 extends Thread {
                     //fixing up direction
                 }
             } else if ((event.getXpos() == 8 && event.getYpos() == 9) || (event.getXpos() == 8 && event.getYpos() == 10)) {
-                //Leaving west block
-                if (direction == UP) {
-                    event = tsim.getSensor(trainId);
+                if (direction == UP) { //Leaving west block
+                    //event = tsim.getSensor(trainId); // WTF is this doing here?
                     west.release();
                 } else {
                     tsim.setSpeed(trainId, 0);
@@ -140,35 +145,75 @@ public class Lab1 extends Thread {
             } else if (event.getXpos() == 1 && event.getYpos() == 9) {
                 if (direction == DOWN && last == dual) { // Leaving dual track.
                     dual.release();
+                    last = null;
                 } else { // Entering dual track.
                     if (dual.tryAcquire()) {
                         last = dual;
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_LEFT);
+                        System.err.println("Acquired dual track");
                     } else {
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_RIGHT);
+                        System.err.println("Failed to acquire dual track");
                     }
                 }
+                passSensor(event);
             } else if (event.getXpos() == 1 && event.getYpos() == 11) {
+                // Entering south station
                 if (direction == DOWN) {
                     if (trainId == 1) {
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                     } else if (trainId == 2) {
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
                     }
+                    passSensor(event);
                 }
+            } else if (event.getXpos() == 6 && 
+                (event.getYpos() == 11) || (event.getXpos() == 13)
+            ) { // Try to enter west
+                tsim.setSpeed(trainId, 0);
+                west.acquire();
+                tsim.setSpeed(trainId, trainSpeed);
+                if (event.getYpos() == 11) {
+                    tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT); 
+                } else {
+                    tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
+                }  
             } else if (((event.getXpos() == 12 && event.getYpos() == 11)
-                    || (event.getXpos() == 12 && event.getYpos() == 14))
-                    && direction == DOWN) {
+                    || (event.getXpos() == 12 && event.getYpos() == 13))
+                    && direction == DOWN) { // Stop at the south station and return
+                System.err.println("Stopping at station");
                 tsim.setSpeed(trainId, 0);
                 Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
                 trainSpeed = (-1) * trainSpeed;
+                direction = UP;
                 tsim.setSpeed(trainId, trainSpeed);
 
+            } else if ((event.getXpos() == 12 && event.getYpos() == 13))
+            {
+                System.err.println("Passing stop sensor");
             }
 
         } // end of while true
 
     }
+    /*
+    *  Returns when the train has passed the last activated sensor, specified by event.
+    */
+    private void passSensor(SensorEvent event) throws CommandException, InterruptedException {
+        int lastXPos = event.getXpos();
+        int lastYPos = event.getYpos();
+        while(true) {
+            event = tsim.getSensor(trainId);
+            
+            if (event.getStatus() == SensorEvent.INACTIVE && 
+                event.getXpos() == lastXPos && 
+                event.getYpos() == lastYPos)
+            {
+                System.err.println(trainId + "Passed sensor");
+                break;
+            }
+        }
+}
 
     private void east() throws CommandException, InterruptedException {
         if (direction == DOWN) {
