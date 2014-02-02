@@ -67,12 +67,19 @@ public class Lab1 extends Thread {
 
     private void logic() throws CommandException, InterruptedException {
         int lastXPos = 0, lastYPos = 0;
+        int blockXPos = 0, blockYPos = 0;
 
         System.err.println("SUCH METHOD!");
         while (true) {
             SensorEvent event = tsim.getSensor(trainId);
             // Protect against dual events from same sensor
-            if (event.getXpos() == lastXPos && event.getYpos() == lastYPos) {
+            if (event.getXpos() == lastXPos && event.getYpos() == lastYPos)
+            {
+                continue;
+            }
+            // Makes sure we pass a sensor without acting on it
+            else if(event.getXpos() == blockXPos && event.getYpos() == blockYPos)
+            {
                 continue;
             }
             else {
@@ -143,10 +150,15 @@ public class Lab1 extends Thread {
                     }
                 }
             } else if (event.getXpos() == 1 && event.getYpos() == 9) {
-                if (direction == DOWN && last == dual) { // Leaving dual track.
-                    dual.release();
-                    last = null;
-                } else { // Entering dual track.
+                if (direction == DOWN) { // Leaving dual track.
+                    if (last == dual) {
+                        dual.release();
+                        last = null;
+                    }
+                    //passSensor(event);
+                    //blockXPos = event.getXpos();
+                    //blockYPos = event.getYpos();
+                } else if(direction == UP) { // Entering dual track.
                     if (dual.tryAcquire()) {
                         last = dual;
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_LEFT);
@@ -156,20 +168,28 @@ public class Lab1 extends Thread {
                         System.err.println("Failed to acquire dual track");
                     }
                 }
-                passSensor(event);
+                
             } else if (event.getXpos() == 1 && event.getYpos() == 11) {
                 // Entering south station
+                System.err.println("Entering station tracks");
                 if (direction == DOWN) {
                     if (trainId == 1) {
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                     } else if (trainId == 2) {
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
                     }
-                    passSensor(event);
+                    //passSensor(event);
+                    blockXPos = 1;
+                    blockYPos = 9;
                 }
             } else if (event.getXpos() == 6 && 
-                (event.getYpos() == 11) || (event.getXpos() == 13)
-            ) { // Try to enter west
+                (event.getYpos() == 11 || event.getYpos() == 13)
+            ) {
+                if (direction == DOWN) {
+                    System.err.println("Releasing west");
+                    west.release();
+                    continue;
+                }
                 tsim.setSpeed(trainId, 0);
                 west.acquire();
                 tsim.setSpeed(trainId, trainSpeed);
@@ -178,9 +198,13 @@ public class Lab1 extends Thread {
                 } else {
                     tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                 }  
-            } else if (((event.getXpos() == 12 && event.getYpos() == 11)
-                    || (event.getXpos() == 12 && event.getYpos() == 13))
-                    && direction == DOWN) { // Stop at the south station and return
+            } else if (((event.getXpos() == 12 && event.getYpos() == 13))
+                    ) { // Stop at the south station and return
+                if(direction == UP)
+                {
+                    System.err.println("Skipping");
+                    continue;
+                }
                 System.err.println("Stopping at station");
                 tsim.setSpeed(trainId, 0);
                 Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
@@ -188,9 +212,6 @@ public class Lab1 extends Thread {
                 direction = UP;
                 tsim.setSpeed(trainId, trainSpeed);
 
-            } else if ((event.getXpos() == 12 && event.getYpos() == 13))
-            {
-                System.err.println("Passing stop sensor");
             }
 
         } // end of while true
@@ -213,7 +234,7 @@ public class Lab1 extends Thread {
                 break;
             }
         }
-}
+    }
 
     private void east() throws CommandException, InterruptedException {
         if (direction == DOWN) {
