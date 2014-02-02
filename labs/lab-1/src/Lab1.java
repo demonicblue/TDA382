@@ -140,9 +140,11 @@ public class Lab1 extends Thread {
                     }
                 } else if(direction == UP) { // UP
                     if(last == dual)
+                    {
                         System.err.println(trainId + ": Releasing dual");
                         dual.release();
                         last = null;
+                    }
                 }
             } else if ( (event.getXpos() == 12 && event.getYpos() == 9 ) || 
                         (event.getXpos() == 12 && event.getYpos() == 10)
@@ -158,7 +160,7 @@ public class Lab1 extends Thread {
                     tsim.setSpeed(trainId, 0);
                     east.acquire();
                     tsim.setSpeed(trainId, trainSpeed);
-                    System.err.println("Acquired east");
+                    System.err.println(trainId + ": Acquired east");
                     if (event.getYpos() == 9) {
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
                         System.err.println(trainId + ": Switiching to right");
@@ -169,12 +171,15 @@ public class Lab1 extends Thread {
 
                 }
             } else if ((event.getXpos() == 8 && event.getYpos() == 9) || (event.getXpos() == 8 && event.getYpos() == 10)) {
+                blockXPos = 0;
+                blockYPos = 0;
+
                 if (direction == UP) { //Leaving west block
                     //event = tsim.getSensor(trainId); // WTF is this doing here?
-                    System.err.println("Releasing west");
+                    System.err.println(trainId + ": Releasing west");
                     west.release();
                 } else {
-                    System.err.println("Acquiring west");
+                    System.err.println(trainId + ": Acquiring west");
                     tsim.setSpeed(trainId, 0);
                     west.acquire();
                     tsim.setSpeed(trainId, trainSpeed);
@@ -193,9 +198,6 @@ public class Lab1 extends Thread {
                         last = null;
                     }
                     System.err.println("Loldafaq");
-                    //passSensor(event);
-                    //blockXPos = event.getXpos();
-                    //blockYPos = event.getYpos();
                 } else if(direction == UP) { // Entering dual track.
                     if (dual.tryAcquire()) {
                         last = dual;
@@ -213,8 +215,10 @@ public class Lab1 extends Thread {
                 // Entering south station
                 if (direction == DOWN) {
                     if (trainId == 1) {
+                        System.err.println(trainId + ": to lower track");
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                     } else if (trainId == 2) {
+                        System.err.println(trainId + ": to upper track");
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
                     }
                     //passSensor(event);
@@ -240,8 +244,9 @@ public class Lab1 extends Thread {
                 } else {
                     tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                 }  
-            } else if (((event.getXpos() == 12 && event.getYpos() == 13))
-                    ) { // Stop at the south station and return
+            } else if (event.getXpos() == 12 && 
+                (event.getYpos() == 13 || event.getYpos() == 11)
+                ) { // Stop at the south station and return
                 if(direction == UP)
                 {
                     System.err.println("Skipping");
