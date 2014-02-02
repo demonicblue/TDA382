@@ -113,7 +113,6 @@ public class Lab1 extends Thread {
                     (yPos == 7 || yPos == 8)
                     ) { //Entering east block from north.
                 if (direction == DOWN) {
-                    System.err.println(trainId + ": Acquiring east");
                     tsim.setSpeed(trainId, 0);
                     east.acquire();
                     last = east;
@@ -125,7 +124,6 @@ public class Lab1 extends Thread {
                     }
 
                 } else if (direction == UP) {
-                    System.err.println(trainId + ": Releasing east");
                     east.release();
                 }
             } else if (xPos == 19 && yPos == 8) {
@@ -139,11 +137,9 @@ public class Lab1 extends Thread {
             } else if (xPos == 18 && yPos == 9) { //Entering midsection from north.
                 if (direction == DOWN) {
                     if (dual.tryAcquire()) {
-                        System.err.println(trainId + ": Acquired dual");
                         last = dual;
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
                     } else {
-                        System.err.println(trainId + ": Dual already taken");
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_LEFT);
                     }
                     while (true) {
@@ -153,7 +149,6 @@ public class Lab1 extends Thread {
                     }
                 } else if (direction == UP) { // UP
                     if (last == dual) {
-                        System.err.println(trainId + ": Releasing dual");
                         dual.release();
                         last = null;
                     }
@@ -163,21 +158,16 @@ public class Lab1 extends Thread {
                     ) {
                 //Leaving east block
                 if (direction == DOWN) {
-                    System.err.println(trainId + ": Releasing east");
                     east.release();
                 } else {
                     //fixing up direction
-                    System.err.println(trainId + ": Acquiring east");
                     tsim.setSpeed(trainId, 0);
                     east.acquire();
                     tsim.setSpeed(trainId, trainSpeed);
-                    System.err.println(trainId + ": Acquired east");
                     if (yPos == 9) {
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
-                        System.err.println(trainId + ": Switiching to right");
                     } else {
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_LEFT);
-                        System.err.println(trainId + ": Switiching to left");
                     }
 
                 }
@@ -186,10 +176,8 @@ public class Lab1 extends Thread {
                 blockYPos = 0;
 
                 if (direction == UP) { //Leaving west block
-                    System.err.println(trainId + ": Releasing west");
                     west.release();
                 } else {
-                    System.err.println(trainId + ": Acquiring west");
                     tsim.setSpeed(trainId, 0);
                     west.acquire();
                     tsim.setSpeed(trainId, trainSpeed);
@@ -200,10 +188,8 @@ public class Lab1 extends Thread {
                     }
                 }
             } else if (xPos == 1 && yPos == 9) {
-                System.err.println("dir: " + direction);
                 if (direction == DOWN) { // Leaving dual track.
                     if (last == dual) {
-                        System.err.println(trainId + ": Releasing dual");
                         dual.release();
                         last = null;
                     }
@@ -211,10 +197,8 @@ public class Lab1 extends Thread {
                     if (dual.tryAcquire()) {
                         last = dual;
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_LEFT);
-                        System.err.println(trainId + ": Acquired dual track");
                     } else {
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_RIGHT);
-                        System.err.println(trainId + ": Failed to acquire dual track");
                     }
                     blockXPos = 1;
                     blockYPos = 11;
@@ -224,10 +208,8 @@ public class Lab1 extends Thread {
                 // Entering south station
                 if (direction == DOWN) {
                     if (trainId == 1) {
-                        System.err.println(trainId + ": to lower track");
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                     } else if (trainId == 2) {
-                        System.err.println(trainId + ": to upper track");
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
                     }
                     blockXPos = 1;
@@ -237,13 +219,11 @@ public class Lab1 extends Thread {
                     (yPos == 11 || yPos == 13)
                     ) {
                 if (direction == DOWN) {
-                    System.err.println(trainId + ": Releasing west");
                     west.release();
                     blockXPos = 0;
                     blockYPos = 0;
                     continue;
                 }
-                System.err.println(trainId + ": Acquiring west");
                 tsim.setSpeed(trainId, 0);
                 west.acquire();
                 tsim.setSpeed(trainId, trainSpeed);
@@ -258,7 +238,6 @@ public class Lab1 extends Thread {
                 if (direction == UP) {
                     continue;
                 }
-                System.err.println(trainId + ": Stopping at station");
                 stationStopAndChangeDirection(UP);
             }
 
