@@ -52,9 +52,7 @@ public class Lab1 extends Thread {
     public void run() {
         try {
             tsim.setSpeed(trainId, trainSpeed);
-
             logic();
-
 
         } catch (CommandException e) {
             e.printStackTrace();    // or only e.getMessage() for the error
@@ -87,11 +85,7 @@ public class Lab1 extends Thread {
             if (((xPos == 12 && yPos == 3)
                     || (xPos == 12 && yPos == 5))
                     && direction == UP) {
-                tsim.setSpeed(trainId, 0);
-                Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
-                trainSpeed = (-1) * trainSpeed;
-                direction = DOWN;
-                tsim.setSpeed(trainId, trainSpeed);
+                stationStopAndChangeDirection(DOWN);
 
             } else if ((xPos == 6 && yPos == 6) || (xPos == 9 && yPos == 5)) { //Entering crossing from north station.
                 if (direction == DOWN) {
@@ -135,7 +129,6 @@ public class Lab1 extends Thread {
                     east.release();
                 }
             } else if (xPos == 19 && yPos == 8) {
-                //
                 if (direction == UP) {
                     if (trainId == 1) {
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
@@ -193,7 +186,6 @@ public class Lab1 extends Thread {
                 blockYPos = 0;
 
                 if (direction == UP) { //Leaving west block
-                    //event = tsim.getSensor(trainId); // WTF is this doing here?
                     System.err.println(trainId + ": Releasing west");
                     west.release();
                 } else {
@@ -215,7 +207,6 @@ public class Lab1 extends Thread {
                         dual.release();
                         last = null;
                     }
-                    System.err.println("Loldafaq");
                 } else if (direction == UP) { // Entering dual track.
                     if (dual.tryAcquire()) {
                         last = dual;
@@ -239,7 +230,6 @@ public class Lab1 extends Thread {
                         System.err.println(trainId + ": to upper track");
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
                     }
-                    //passSensor(event);
                     blockXPos = 1;
                     blockYPos = 9;
                 }
@@ -266,18 +256,21 @@ public class Lab1 extends Thread {
                     (yPos == 13 || yPos == 11)
                     ) { // Stop at the south station and return
                 if (direction == UP) {
-                    System.err.println("Skipping");
                     continue;
                 }
                 System.err.println(trainId + ": Stopping at station");
-                tsim.setSpeed(trainId, 0);
-                Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
-                trainSpeed = (-1) * trainSpeed;
-                direction = UP;
-                tsim.setSpeed(trainId, trainSpeed);
+                stationStopAndChangeDirection(UP);
             }
 
         } // end of while true
 
+    }
+
+    private void stationStopAndChangeDirection(int direction) throws CommandException, InterruptedException {
+        tsim.setSpeed(trainId, 0);
+        Thread.sleep(STATION_WAIT + 2 * simSpeed * Math.abs(trainSpeed));
+        trainSpeed = (-1) * trainSpeed;
+        this.direction = direction;
+        tsim.setSpeed(trainId, trainSpeed);
     }
 }
