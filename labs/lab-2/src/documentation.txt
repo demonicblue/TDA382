@@ -1,0 +1,43 @@
+Lab assignment - Trainspotting 1
+
+Course participants: Henrik Hugo, Simon Fransson.
+
+
+The solution we came up with works for maximum trainspeed of 20 and uses four different semaphores each representing a section where the trains may affect each other.
+The sections that needed semaphores were split up into blocks, east, west, dual and crossing sections. The east block being the section where the trains share the
+same track and need a semaphore so that only at most train access the track at any given time, same goes for the west block. The crossing section is quite self-explan-
+atory as it's the small section where the rails cross. A semaphore was needed so that only at most one train can access the crossing at any given time. The last section
+was the dual section where we used a semaphore to designate which train that needs to avert from the default track and take the alternative track.
+
+To acquire semaphores we made use of the sensors (20 in total). As a train passed a sensor entering one of the aforementioned sections it set its speed to zero and tries to acquire
+a semaphore. The acquire-call blocks until it gets the semaphore and it can only get the semaphore once the other train has exited the section. For the dual-track
+section we simply used a tryAcquire-call on the semaphore, if the semaphore was acquired the train would continue on its default track. If the train failed to acquire
+the semaphore it simply changed track to the other track as the default track was already occupied.
+
+Placement of sensors:
+Generally for the different blocks we used 4 sensors each: one each for Train A or Train B entering and one each for Train A or Train B leaving the block. The exception
+is the dual-track block which only needed 2 as you can only enter the block from two different directions. The sensors were also used in combination with the direction
+of the train to determine what position the rail switch should be in to lead the train to the right track. For the two stations four sensors were used, one for each
+track leading up to the station to determine when the train should stop and change direction. In total we used 20 different sensors.
+
+Choice of critical sections:
+I believe the choice of the critical sections has already been explained. The critical sections would be the east, west, dual and crossing blocks. These are the criti-
+cal sections because these are the sections where the trains can collide.
+
+Maximum train speed:
+The maximum train speed is 20 and this is simply because of the positioning of the sensors. If we would go with a higher speed the trains would not be able to come to
+a full stop before they entered the critical section and this would lead to a collision. To achieve a higher train speed you would simply have to move the sensors
+so they may be able to sense the trains farther away from the intersections.
+
+How you tested your solution:
+Running multiple instances of the program. We ran up to 6 different instances with different train speeds and simulator speeds and ran it for 10-15 minutes without
+having any collisions.
+
+./2 "tsim --speed=10 Lab2.map" "java Lab2 1 20 10"
+./2 "tsim --speed=30 Lab2.map" "java Lab2 15 10 30"
+./2 "tsim --speed=20 Lab2.map" "java Lab2 10 15 20"
+./2 "tsim --speed=40 Lab2.map" "java Lab2 5 20 40"
+./2 "tsim --speed=5 Lab2.map" "java Lab2 20 20 5"
+./2 "tsim --speed=1 Lab2.map" "java Lab2 1 1 1"
+
+These are the commands we used.
