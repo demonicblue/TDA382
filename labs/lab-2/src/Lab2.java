@@ -160,6 +160,7 @@ public class Lab2 extends Thread {
                     } else if (last == west) {
                         System.err.println("WEST för fan");
                     }
+
                 }
             } else if ((xPos == 12 && yPos == 9) ||
                     (xPos == 12 && yPos == 10)
@@ -302,6 +303,7 @@ public class Lab2 extends Thread {
             System.err.println("Trying to enter dual track: " + name);
             if (onTrack) {
                 System.err.println("Switching track");
+                lock.unlock();
                 return false;
             }
             
