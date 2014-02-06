@@ -6,6 +6,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Lab2 extends Thread {
     public static final int UP = 1;
     public static final int DOWN = 2;
@@ -16,6 +19,8 @@ public class Lab2 extends Thread {
     private static TrackMonitor west = new TrackMonitor("west");
     private static TrackMonitor crossing = new TrackMonitor("crossing");
     private static TrackMonitor dual = new TrackMonitor("dual");
+    private static TrackMonitor northStation = new TrackMonitor("northStation");
+    private static TrackMonitor southStation = new TrackMonitor("southStation");
 
     private int trainId;
     private int trainSpeed;
@@ -23,7 +28,9 @@ public class Lab2 extends Thread {
     private static int simSpeed;
 
     private static TSimInterface tsim;
-    private TrackMonitor last;
+    //private TrackMonitor last;
+
+    private HashSet<TrackMonitor> inventory = new HashSet<TrackMonitor>();
 
     public static void main(String[] args) {
         if (args.length < 3) {
@@ -90,23 +97,28 @@ public class Lab2 extends Thread {
                 if (direction == DOWN) {
                     tsim.setSpeed(trainId, 0);
                     crossing.enter();
-                    last = crossing;
+                    //last = crossing;
+                    inventory.add(crossing);
                     tsim.setSpeed(trainId, trainSpeed);
                 } else if (direction == UP) { //Leaving crossing in north direction.
-                    if (last == crossing) {
+                    //if (last == crossing) {
+                    if (inventory.contains(crossing)) {
                         crossing.leave();
-                        last = null;
+                        //last = null;
+                        inventory.remove(crossing);
                     }
                 }
             } else if (xPos == 11 && (yPos == 7 || yPos == 8)) {
                 if (direction == UP) { //Entering crossing from south direction.
                     tsim.setSpeed(trainId, 0);
                     crossing.enter();
-                    last = crossing;
+                    //last = crossing;
+                    inventory.add(crossing);
                     tsim.setSpeed(trainId, trainSpeed);
                 } else if (direction == DOWN) { //Leaving crossing in south direction.
                     crossing.leave();
-                    last = null;
+                    //last = null;
+                    inventory.remove(crossing);
                 }
             } else if (xPos == 14 &&
                     (yPos == 7 || yPos == 8)
@@ -114,7 +126,8 @@ public class Lab2 extends Thread {
                 if (direction == DOWN) {
                     tsim.setSpeed(trainId, 0);
                     east.enter();
-                    last = east;
+                    //last = east;
+                    inventory.add(east);
                     tsim.setSpeed(trainId, trainSpeed);
                     if (yPos == 7) {
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
@@ -124,20 +137,41 @@ public class Lab2 extends Thread {
 
                 } else if (direction == UP) {
                     east.leave();
+                    blockXPos = 0;
+                    blockYPos = 0;
                 }
             } else if (xPos == 19 && yPos == 8) {
+                // Enter north station
                 if (direction == UP) {
-                    if (trainId == 1) {
+                    blockXPos = 18;
+                    blockYPos = 9;
+
+                    if( northStation.tryEnter() ) {
+                        //last = northStation;
+                        inventory.add(northStation);
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
-                    } else if (trainId == 2) {
+                        System.err.println(trainId + ": Did get station");
+                    } else {
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_LEFT);
+                        System.err.println(trainId + ": Didn't get station");
+                    }
+                } else if(direction == DOWN) {
+                    //if (last == northStation) {
+                    if (inventory.contains(northStation)) {
+                        northStation.leave();
+                        //last = null;
+                        inventory.remove(northStation);
+                        System.err.println(trainId + ": Released station");
                     }
                 }
             } else if (xPos == 18 && yPos == 9) { //Entering midsection from north.
-                System.err.println("Sensed 18, 9");
                 if (direction == DOWN) {
+                    blockXPos = 19;
+                    blockYPos = 8;
+
                     if (dual.tryEnter()) {
-                        last = dual;
+                        //last = dual;
+                        inventory.add(dual);
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_RIGHT);
                     } else {
                         tsim.setSwitch(15, 9, TSimInterface.SWITCH_LEFT);
@@ -148,17 +182,11 @@ public class Lab2 extends Thread {
                             break;
                     }
                 } else if (direction == UP) { // UP
-                    System.err.println("18, 9 going UP!");
-                    if (last == dual) {
+                    //if (last == dual) {
+                    if (inventory.contains(dual)) {
                         dual.leave();
-                        last = null;
-                    }
-                    else if(last == east) {
-                        System.err.println("FEEEEEEEEEEEEEEEEEL");
-                    } else if(last == null) {
-                        System.err.println("NULL för fan");
-                    } else if (last == west) {
-                        System.err.println("WEST för fan");
+                        //last = null;
+                        inventory.remove(dual);
                     }
 
                 }
@@ -168,6 +196,8 @@ public class Lab2 extends Thread {
                 //Leaving east block
                 if (direction == DOWN) {
                     east.leave();
+                    blockXPos = 0;
+                    blockYPos = 0;
                 } else {
                     //fixing up direction
                     tsim.setSpeed(trainId, 0);
@@ -198,13 +228,16 @@ public class Lab2 extends Thread {
                 }
             } else if (xPos == 1 && yPos == 9) {
                 if (direction == DOWN) { // Leaving dual track.
-                    if (last == dual) {
+                    //if (last == dual) {
+                    if(inventory.contains(dual)) {
                         dual.leave();
-                        last = null;
+                        //last = null;
+                        inventory.remove(dual);
                     }
                 } else if (direction == UP) { // Entering dual track.
                     if (dual.tryEnter()) {
-                        last = dual;
+                        //last = dual;
+                        inventory.add(dual);
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_LEFT);
                     } else {
                         tsim.setSwitch(4, 9, TSimInterface.SWITCH_RIGHT);
@@ -216,13 +249,22 @@ public class Lab2 extends Thread {
             } else if (xPos == 1 && yPos == 11) {
                 // Entering south station
                 if (direction == DOWN) {
-                    if (trainId == 1) {
-                        tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
-                    } else if (trainId == 2) {
+                    if ( southStation.tryEnter() ) {
                         tsim.setSwitch(3, 11, TSimInterface.SWITCH_LEFT);
+                        //last = southStation;
+                        inventory.add(southStation);
+                    } else {
+                        tsim.setSwitch(3, 11, TSimInterface.SWITCH_RIGHT);
                     }
                     blockXPos = 1;
                     blockYPos = 9;
+                } else if (direction == UP) {
+                    //if (last == southStation) {
+                    if (inventory.contains(southStation)) {
+                        southStation.leave();
+                        //last = null;
+                        inventory.remove(southStation);
+                    }
                 }
             } else if (xPos == 6 &&
                     (yPos == 11 || yPos == 13)
@@ -281,34 +323,34 @@ public class Lab2 extends Thread {
 
         private void enter() throws InterruptedException {
             lock.lock();
-            System.err.println("Trying to enter track: " + name);
+            //System.err.println("Trying to enter track: " + name);
             while (onTrack) notOnTrack.await();
 
             onTrack = true;
-            System.err.println("Enter track: " + name);
+            //System.err.println("Enter track: " + name);
             lock.unlock();
         }
 
         private void leave() {
             lock.lock();
-            System.err.println("Trying to leave track: " + name);
+            //System.err.println("Trying to leave track: " + name);
             onTrack = false;
             notOnTrack.signal();
-            System.err.println("Left track: " + name);
+            //System.err.println("Left track: " + name);
             lock.unlock();
         }
 
         private boolean tryEnter() {
             lock.lock();
-            System.err.println("Trying to enter dual track: " + name);
+            //System.err.println("Trying to enter dual track: " + name);
             if (onTrack) {
-                System.err.println("Switching track");
+                //System.err.println("Switching track");
                 lock.unlock();
                 return false;
             }
             
             onTrack = true;
-            System.err.println("Got dual track: " + name);
+            //System.err.println("Got dual track: " + name);
             lock.unlock();
             return true;
         }
