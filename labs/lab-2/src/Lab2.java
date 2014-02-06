@@ -306,6 +306,8 @@ public class Lab2 extends Thread {
 
 
     public static class TrackMonitor {
+        // Set to true for debug output
+        private static final boolean DEBUG = false;
 
         private Lock lock;
 
@@ -323,36 +325,40 @@ public class Lab2 extends Thread {
 
         private void enter() throws InterruptedException {
             lock.lock();
-            //System.err.println("Trying to enter track: " + name);
+            debug("Trying to enter track");
             while (onTrack) notOnTrack.await();
 
             onTrack = true;
-            //System.err.println("Enter track: " + name);
+            debug("Enter track");
             lock.unlock();
         }
 
         private void leave() {
             lock.lock();
-            //System.err.println("Trying to leave track: " + name);
+            debug("Trying to leave track");
             onTrack = false;
             notOnTrack.signal();
-            //System.err.println("Left track: " + name);
+            debug("Left track");
             lock.unlock();
         }
 
         private boolean tryEnter() {
             lock.lock();
-            //System.err.println("Trying to enter dual track: " + name);
+            debug("Trying to enter dual track");
             if (onTrack) {
-                //System.err.println("Switching track");
+                debug("Switching track");
                 lock.unlock();
                 return false;
             }
             
             onTrack = true;
-            //System.err.println("Got dual track: " + name);
+            debug("Got dual track");
             lock.unlock();
             return true;
+        }
+
+        private void debug(String msg) {
+            System.err.println(name + ": " + msg);
         }
     }
 }
