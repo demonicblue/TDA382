@@ -142,16 +142,13 @@ public class Lab2 extends Thread {
                     if( northStation.tryEnter() ) {
                         inventory.add(northStation);
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_RIGHT);
-                        System.err.println(trainId + ": Did get station");
                     } else {
                         tsim.setSwitch(17, 7, TSimInterface.SWITCH_LEFT);
-                        System.err.println(trainId + ": Didn't get station");
                     }
                 } else if(direction == DOWN) {
                     if ( inventory.contains(northStation) ) {
                         northStation.leave();
                         inventory.remove(northStation);
-                        System.err.println(trainId + ": Released station");
                     }
                 }
             } else if (xPos == 18 && yPos == 9) { //Entering midsection from north.
@@ -285,7 +282,6 @@ public class Lab2 extends Thread {
         tsim.setSpeed(trainId, trainSpeed);
     }
 
-
     public static class TrackMonitor {
         // Set to true for debug output
         private static final boolean DEBUG = false;
@@ -338,8 +334,9 @@ public class Lab2 extends Thread {
             return true;
         }
 
-        private void debug(String msg) {
-            System.err.println(name + ": " + msg);
+        public void debug(String msg) {
+            if( DEBUG )
+                System.err.println(name + ": " + msg);
         }
     }
 }
