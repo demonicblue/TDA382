@@ -12,17 +12,17 @@ public class Lab2 extends Thread {
     public static final int STATION_WAIT = 1500;
     private int direction;
 
-    private static TrackMonitor east = new TrackMonitor();
-    private static TrackMonitor west = new TrackMonitor();
-    private static TrackMonitor crossing = new TrackMonitor();
-    private static TrackMonitor dual = new TrackMonitor();
+    private static TrackMonitor east = new TrackMonitor("east");
+    private static TrackMonitor west = new TrackMonitor("west");
+    private static TrackMonitor crossing = new TrackMonitor("crossing");
+    private static TrackMonitor dual = new TrackMonitor("dual");
 
     private int trainId;
     private int trainSpeed;
 
     private static int simSpeed;
 
-    private TSimInterface tsim;
+    private static TSimInterface tsim;
     private TrackMonitor last;
 
     public static void main(String[] args) {
@@ -31,6 +31,8 @@ public class Lab2 extends Thread {
         } else {
             simSpeed = Integer.parseInt(args[2]);
         }
+
+        tsim = TSimInterface.getInstance();
 
         Lab2 train1 = new Lab2(1, Integer.parseInt(args[0]), DOWN);
         Lab2 train2 = new Lab2(2, Integer.parseInt(args[1]), UP);
@@ -43,7 +45,6 @@ public class Lab2 extends Thread {
     public Lab2(int id, int speed, int direction) {
         trainId = id;
         trainSpeed = speed;
-        tsim = TSimInterface.getInstance();
         this.direction = direction;
     }
 
@@ -133,6 +134,7 @@ public class Lab2 extends Thread {
                     }
                 }
             } else if (xPos == 18 && yPos == 9) { //Entering midsection from north.
+                System.err.println("Sensed 18, 9");
                 if (direction == DOWN) {
                     if (dual.tryEnter()) {
                         last = dual;
@@ -146,9 +148,17 @@ public class Lab2 extends Thread {
                             break;
                     }
                 } else if (direction == UP) { // UP
+                    System.err.println("18, 9 going UP!");
                     if (last == dual) {
                         dual.leave();
                         last = null;
+                    }
+                    else if(last == east) {
+                        System.err.println("FEEEEEEEEEEEEEEEEEL");
+                    } else if(last == null) {
+                        System.err.println("NULL för fan");
+                    } else if (last == west) {
+                        System.err.println("WEST för fan");
                     }
                 }
             } else if ((xPos == 12 && yPos == 9) ||
@@ -258,8 +268,10 @@ public class Lab2 extends Thread {
 
         private boolean onTrack;
         private Condition notOnTrack;
+        private String name;
 
-        public TrackMonitor() {
+        public TrackMonitor(String name) {
+            this.name = name;
             lock = new ReentrantLock();
             notOnTrack = lock.newCondition();
             onTrack = false;
@@ -268,25 +280,33 @@ public class Lab2 extends Thread {
 
         private void enter() throws InterruptedException {
             lock.lock();
+            System.err.println("Trying to enter track: " + name);
             while (onTrack) notOnTrack.await();
 
             onTrack = true;
-
+            System.err.println("Enter track: " + name);
             lock.unlock();
         }
 
         private void leave() {
             lock.lock();
+            System.err.println("Trying to leave track: " + name);
             onTrack = false;
             notOnTrack.signal();
+            System.err.println("Left track: " + name);
             lock.unlock();
         }
 
         private boolean tryEnter() {
             lock.lock();
-            if (onTrack) return false;
+            System.err.println("Trying to enter dual track: " + name);
+            if (onTrack) {
+                System.err.println("Switching track");
+                return false;
+            }
             
             onTrack = true;
+            System.err.println("Got dual track: " + name);
             lock.unlock();
             return true;
         }
