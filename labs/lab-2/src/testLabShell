@@ -1,0 +1,8 @@
+./2 "tsim --speed=10 Lab1.map" "java Lab1 1 20 10" &
+./2 "tsim --speed=30 Lab1.map" "java Lab1 15 10 30" &
+./2 "tsim --speed=20 Lab1.map" "java Lab1 10 15 20" &
+./2 "tsim --speed=40 Lab1.map" "java Lab1 5 20 40" &
+./2 "tsim --speed=5 Lab1.map" "java Lab1 20 20 5" &
+./2 "tsim --speed=1 Lab1.map" "java Lab1 1 1 1" &
+
+
