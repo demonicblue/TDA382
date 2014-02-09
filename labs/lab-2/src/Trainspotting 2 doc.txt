@@ -1,0 +1,26 @@
+Lab assignment - Trainspotting 2
+
+Course participants: Henrik Hugo, Simon Fransson.
+
+The monitor implementation:
+An instance of TrackMonitor represents a track which can be entered and left by a train.
+
+TrackMonitor(String name):
+   Instantiates a new monitor representing a track which requires that only one train can be on it at any given time. Sets up both the lock and the conditional value.
+
+enter():
+   Tries to acquire the monitor for the track. Will return immediately if the monitor is available. If it is not immediately available; the function will block until it gets signaled through the conditional value.
+
+leave():
+   Marks the track as clear and signals any awaiting trains.
+
+tryEnter():
+	Like the enter() function, tryEnter() will try to acquire the monitor but instead of blocking on failure it will return false. On success it will return true.
+
+debug():
+   Not important to the solution but allows for easy enabling of debug messages.
+
+
+Number of conditional values:
+Only one conditional value per track is required in this solution, making it a total of 6. The conditional allows trains to await a signal, marking the availability of tracks.
+
