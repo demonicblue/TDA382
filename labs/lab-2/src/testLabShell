@@ -1,3 +1,4 @@
+#!/bin/sh
 ./2 "tsim --speed=10 Lab1.map" "java Lab1 1 20 10" &
 ./2 "tsim --speed=30 Lab1.map" "java Lab1 15 10 30" &
 ./2 "tsim --speed=20 Lab1.map" "java Lab1 10 15 20" &
