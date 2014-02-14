@@ -8,4 +8,4 @@ loop(St, _Msg) ->
 
 
 initial_state(_Server) ->
-    #server_st{}.
+    #server_st{name = "shire", clients = []}.

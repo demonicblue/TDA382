@@ -38,13 +38,14 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
 %%% WhoIam
 %%%%%%%%%%%%%%
 loop(St, whoiam) ->
-    {"user01", St} ;
+    {St#cl_st.nick, St} ;
 
 %%%%%%%%%%
 %%% Nick
 %%%%%%%%%%
 loop(St,{nick,_Nick}) ->
-    {ok, St} ;
+    X = St#cl_st{nick = _Nick},
+    {ok, X} ;
 
 %%%%%%%%%%%%%
 %%% Debug
@@ -69,4 +70,4 @@ decompose_msg(_MsgFromClient) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName }.
+    #cl_st { gui = GUIName, nick = Nick }.
