@@ -7,7 +7,19 @@
 %%%% Connect
 %%%%%%%%%%%%%%%
 loop(St, {connect, _Server}) ->
-    {ok, St} ;
+    case whereis(list_to_atom(_Server)) of
+        undefined ->
+            Return = {error, "Cannot connect to server"};
+        _ ->
+            Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
+            Return = case Result of
+                 ok     ->  trace(["Client:got ok"]),
+                            {ok, St};
+                 error  ->  trace(["Client:got error"]),
+                            {error, "Fatal during connect"}
+            end
+    end,
+    Return ;
 
 %%%%%%%%%%%%%%%
 %%%% Disconnect
@@ -67,6 +79,19 @@ loop(St = #cl_st { gui = GUIName }, _MsgFromClient) ->
 % it in the right chat room.
 decompose_msg(_MsgFromClient) ->
     {"", "", ""}.
+
+catch_fatal(Cmd) ->
+    case catch( Cmd() ) of
+        {'EXIT',Reason} ->
+            trace(["EXIT:", Reason]),
+            error ;
+        {error, _, Msg} -> trace(["Error:", Msg]),
+                           error ;
+        Result          -> Result
+    end.
+
+trace(Args) ->
+    io:format("~n~s"++lists:flatten(lists:duplicate(length(Args)-1,"~p")),Args).
 
 
 initial_state(Nick, GUIName) ->
