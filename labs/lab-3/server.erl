@@ -10,7 +10,6 @@ loop(St, {connect, _ClientId, _Nick}) ->
 	{ok, X};
 
 loop(St, {disconnect, _ClientId, _Nick}) ->
-	io:format("Username: ~p~n", [_ClientId]),
 	DelList = lists:delete(_ClientId, St#server_st.clients),
 	X = St#server_st{clients = DelList},
 	io:format("contents of deleted list: ~p~n", [X]),
