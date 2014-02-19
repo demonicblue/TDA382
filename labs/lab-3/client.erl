@@ -9,17 +9,16 @@
 loop(St, {connect, _Server}) ->
     case whereis(list_to_atom(_Server)) of
         undefined ->
-            trace(["Cannot connect to server"]),
-            io:format("~p", [St#cl_st.gui]),
-            Return = {{error, client_already_connected, "LOLOL"}, St};
+            %trace(["Cannot connect to server"]),
+            %io:format("~p", [St#cl_st.gui]),
+            Return = {{error, server_not_reached, "Server could not be reached."}, St};
         _ ->
             Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
             Return = case Result of
                  ok     ->  trace(["Client:got ok"]),
                             NewState = St#cl_st{server = _Server},
-                            {ok, NewState};
-                 error  ->  trace(["Client:got error"]),
-                            {error, St}
+                            {ok, NewState};c
+                 error  ->  {{error, user_already_connected, "User already connected!"}, St}
             end
     end,
     Return ;
@@ -30,7 +29,7 @@ loop(St, {connect, _Server}) ->
 loop(St, disconnect) -> 
     case St#cl_st.server of
     "" ->
-        Return = {error, St};
+        Return = {{error, user_not_connected, "User is not connected to any server!"}, St};
         
     _ ->
         Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
