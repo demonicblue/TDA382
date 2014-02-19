@@ -4,10 +4,16 @@
 -include_lib("./defs.hrl").
 
 loop(St, {connect, _ClientId, _Nick}) ->
-	NewDict = dict:append(_Nick, _ClientId, St#server_st.clients),
-	X = St#server_st{clients = NewDict},
+	%NewDict = dict:append(_Nick, _ClientId, St#server_st.clients),
+	case catch( dict:append(_Nick, _ClientId, St#server_st.clients) ) of
+		{'EXIT',_} ->
+			Return = {error, St};
+		Result ->
+			X = St#server_st{clients = Result},
+			Return = {ok, X}
+	end,
 	%io:format("contents: ~p~n", [NewList]),
-	{ok, X};
+	Return;
 
 loop(St, {disconnect, _Nick}) ->
 	DelDict = dict:erase(_Nick, St#server_st.clients),

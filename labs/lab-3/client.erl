@@ -9,8 +9,9 @@
 loop(St, {connect, _Server}) ->
     case whereis(list_to_atom(_Server)) of
         undefined ->
-            trace(["Cannot connect to server"])
-            Return = {error, St};
+            trace(["Cannot connect to server"]),
+            io:format("~p", [St#cl_st.gui]),
+            Return = {{error, client_already_connected, "LOLOL"}, St};
         _ ->
             Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
             Return = case Result of
@@ -47,7 +48,8 @@ loop(St, disconnect) ->
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
-    {ok, St} ;
+    NewState = St#cl_st{channels = _Channel},
+    {ok, NewState} ;
 
 %%%%%%%%%%%%%%%
 %%%% Leave
@@ -66,6 +68,7 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
 %%% WhoIam
 %%%%%%%%%%%%%%
 loop(St, whoiam) ->
+    gen_server:call(list_to_atom(St#cl_st.gui), {msg_to_GUI, St#cl_st.channels, "CONNECTION ERROR"}),
     {St#cl_st.nick, St} ;
 
 %%%%%%%%%%
