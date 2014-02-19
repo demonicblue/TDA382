@@ -31,7 +31,7 @@ loop(St, disconnect) ->
         Return = {error, St};
         
     _ ->
-        Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, self(), St#cl_st.nick}) end),
+        Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
         Return = case Result of
             ok  ->  trace(["Client got ok"]),
                     NewState = St#cl_st{server = ""},
