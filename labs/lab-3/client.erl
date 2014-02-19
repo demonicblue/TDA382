@@ -7,19 +7,25 @@
 %%%% Connect
 %%%%%%%%%%%%%%%
 loop(St, {connect, _Server}) ->
-    case whereis(list_to_atom(_Server)) of
-        undefined ->
-            %trace(["Cannot connect to server"]),
-            %io:format("~p", [St#cl_st.gui]),
-            Return = {{error, server_not_reached, "Server could not be reached."}, St};
-        _ ->
-            Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
-            Return = case Result of
-                 ok     ->  trace(["Client:got ok"]),
-                            NewState = St#cl_st{server = _Server},
-                            {ok, NewState};c
-                 error  ->  {{error, user_already_connected, "User already connected!"}, St}
-            end
+    
+    if St#cl_st.server == "" ->
+
+        case whereis(list_to_atom(_Server)) of
+            undefined ->
+                %trace(["Cannot connect to server"]),
+                %io:format("~p", [St#cl_st.gui]),
+                Return = {{error, server_not_reached, "Server could not be reached."}, St};
+            _ ->
+                Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
+                Return = case Result of
+                     ok     ->  trace(["Client:got ok"]),
+                                NewState = St#cl_st{server = _Server},
+                                {ok, NewState};
+                     error  ->  {{error, nick_taken, "Nickname already taken!"}, St}
+                end
+        end;
+    true ->
+        Return = {{error, user_already_connected, "DU HAR JU REDAN CONNECTAT FÖR FAAAAAEN!"}, St}
     end,
     Return ;
 
@@ -103,9 +109,16 @@ catch_fatal(Cmd) ->
         {'EXIT',Reason} ->
             trace(["EXIT:", Reason]),
             error ;
-        {error, _, Msg} -> trace(["Error:", Msg]),
-                           error ;
-        Result          -> Result
+        {error, nick_taken} -> 
+            trace(["Mammas bröd"]),
+            error;
+
+
+        {error, _, Msg} ->
+            trace(["Error:", Msg]),
+            error ;
+        Result -> 
+            Result
     end.
 
 trace(Args) ->
