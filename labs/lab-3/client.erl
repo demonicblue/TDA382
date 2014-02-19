@@ -9,7 +9,8 @@
 loop(St, {connect, _Server}) ->
     case whereis(list_to_atom(_Server)) of
         undefined ->
-            Return = {error, "Cannot connect to server"};
+            trace(["Cannot connect to server"])
+            Return = {error, St};
         _ ->
             Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
             Return = case Result of
@@ -17,7 +18,7 @@ loop(St, {connect, _Server}) ->
                             NewState = St#cl_st{server = _Server},
                             {ok, NewState};
                  error  ->  trace(["Client:got error"]),
-                            {error, "Fatal during connect"}
+                            {error, St}
             end
     end,
     Return ;
