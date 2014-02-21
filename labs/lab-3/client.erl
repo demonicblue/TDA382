@@ -55,22 +55,39 @@ loop(St, disconnect) ->
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
-    %Update with support for multiple channels?
-    genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
-    NewList = lists:append(St#cl_st.channels, [_Channel]),
-    NewState = St#cl_st{channels = NewList},
-    {ok, NewState} ;
+    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
+    case lists:any(Equals, St#cl_st.channels) of
+        true -> 
+            Return = {{error, user_already_joined, "User has already joined this channel!"}, St};
+        false -> 
+            genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
+            NewList = lists:append(St#cl_st.channels, [_Channel]),
+            NewState = St#cl_st{channels = NewList},
+            Return = {ok, NewState}
+    end,
+    Return;
 
 %%%%%%%%%%%%%%%
 %%%% Leave
 %%%%%%%%%%%%%%%
 loop(St, {leave, _Channel}) ->
-     {ok, St} ;
+    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
+    case lists:any(Equals, St#cl_st.channels) of
+        true ->
+            genserver:request(list_to_atom(St#cl_st.server), {leave, St#cl_st.nick, _Channel}),
+            NewList = lists:delete(_Channel, St#cl_st.channels),
+            NewState = St#cl_st{channels = NewList},
+            Return = {ok, NewState}
+        false ->
+            Retur = {{error, user_not_joined, "User has not joined the channel!"}, St}
+
+    Return;
 
 %%%%%%%%%%%%%%%%%%%%%
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
+
     genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
      {ok, St} ;
 
