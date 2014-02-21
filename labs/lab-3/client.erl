@@ -43,7 +43,7 @@ loop(St, disconnect) ->
                             NewState = St#cl_st{server = ""},
                             {ok, NewState};
                     error -> trace(["Client got error"]),
-                            {error, St}
+                            {{error, server_not_reached, "Could not reach the server!"}, St}
                 end;
             true ->
                 Return = {{error, leave_channels_first, "Leave channels before disconnecting!"}, St}
