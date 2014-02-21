@@ -88,7 +88,6 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
-
     genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
      {ok, St} ;
 
