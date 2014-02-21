@@ -5,7 +5,7 @@
 
 loop(St, {connect, _ClientId, _Nick}) ->
 	case  dict:find(_Nick, St#server_st.clients) of
-		error ->
+		error ->	%If not found in the dict, then add client to server.
 			NewDict = dict:append(_Nick, _ClientId, St#server_st.clients),
 			X = St#server_st{clients = NewDict},
 			{ok, X};
