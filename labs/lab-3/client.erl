@@ -51,6 +51,8 @@ loop(St, disconnect) ->
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
+    %Update with support for multiple channels?
+    genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
     NewState = St#cl_st{channels = _Channel},
     {ok, NewState} ;
 
@@ -64,6 +66,7 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
+    genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
      {ok, St} ;
 
 
