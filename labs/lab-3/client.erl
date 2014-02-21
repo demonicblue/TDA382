@@ -7,20 +7,25 @@
 %%%% Connect
 %%%%%%%%%%%%%%%
 loop(St, {connect, _Server}) ->
-    case whereis(list_to_atom(_Server)) of
-        undefined ->
-            trace(["Cannot connect to server"]),
-            io:format("~p", [St#cl_st.gui]),
-            Return = {{error, client_already_connected, "LOLOL"}, St};
-        _ ->
-            Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
-            Return = case Result of
-                 ok     ->  trace(["Client:got ok"]),
-                            NewState = St#cl_st{server = _Server},
-                            {ok, NewState};
-                 error  ->  trace(["Client:got error"]),
-                            {error, St}
-            end
+    
+    if St#cl_st.server == "" ->
+
+        case whereis(list_to_atom(_Server)) of
+            undefined ->
+                %trace(["Cannot connect to server"]),
+                %io:format("~p", [St#cl_st.gui]),
+                Return = {{error, server_not_reached, "Server could not be reached."}, St};
+            _ ->
+                Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
+                Return = case Result of
+                     ok     ->  trace(["Client:got ok"]),
+                                NewState = St#cl_st{server = _Server},
+                                {ok, NewState};
+                     error  ->  {{error, nick_taken, "Nickname already taken!"}, St}
+                end
+        end;
+    true ->
+        Return = {{error, user_already_connected, "DU HAR JU REDAN CONNECTAT FÖR FAAAAAEN!"}, St}
     end,
     Return ;
 
@@ -30,7 +35,7 @@ loop(St, {connect, _Server}) ->
 loop(St, disconnect) -> 
     case St#cl_st.server of
     "" ->
-        Return = {error, St};
+        Return = {{error, user_not_connected, "User is not connected to any server!"}, St};
         
     _ ->
         Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
@@ -63,7 +68,7 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
-    genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, self(), _Channel, _Msg}),
+    genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
      {ok, St} ;
 
 
@@ -107,9 +112,16 @@ catch_fatal(Cmd) ->
         {'EXIT',Reason} ->
             trace(["EXIT:", Reason]),
             error ;
-        {error, _, Msg} -> trace(["Error:", Msg]),
-                           error ;
-        Result          -> Result
+        {error, nick_taken} -> 
+            trace(["Mammas bröd"]),
+            error;
+
+
+        {error, _, Msg} ->
+            trace(["Error:", Msg]),
+            error ;
+        Result -> 
+            Result
     end.
 
 trace(Args) ->
