@@ -57,7 +57,8 @@ loop(St, disconnect) ->
 loop(St,{join,_Channel}) ->
     %Update with support for multiple channels?
     genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
-    NewState = St#cl_st{channels = _Channel},
+    NewList = lists:append(St#cl_st.channels, [_Channel]),
+    NewState = St#cl_st{channels = NewList},
     {ok, NewState} ;
 
 %%%%%%%%%%%%%%%
@@ -82,7 +83,7 @@ loop(St, whoiam) ->
     {St#cl_st.nick, St} ;
 
 %%%%%%%%%%
-%%% Nick""
+%%% Nick
 %%%%%%%%%%
 loop(St,{nick,_Nick}) ->
     X = St#cl_st{nick = _Nick},
@@ -92,6 +93,7 @@ loop(St,{nick,_Nick}) ->
 %%% Debug
 %%%%%%%%%%%%%
 loop(St, debug) ->
+    io:format("Contents of list: ~p\n", [St#cl_st.channels]),
     {St, St} ;
 
 %%%%%%%%%%%%%%%%%%%%%
