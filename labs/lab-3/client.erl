@@ -19,7 +19,7 @@ loop(St, {connect, _Server}) ->
                      ok     ->  trace(["Client:got ok"]),
                                 NewState = St#cl_st{server = _Server},
                                 {ok, NewState};
-                     error  ->  {{error, nick_taken, "Nickname already taken!"}, St}
+                     error  ->  {{error, user_already_connected, "User already connected!"}, St}
                 end
         end;
     true ->
