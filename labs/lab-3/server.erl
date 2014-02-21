@@ -5,7 +5,7 @@
 
 loop(St, {connect, _ClientId, _Nick}) ->
 	case  dict:find(_Nick, St#server_st.clients) of
-		error ->
+		error ->	%If not found in the dict, then add client to server.
 			NewDict = dict:store(_Nick, _ClientId, St#server_st.clients),
 			X = St#server_st{clients = NewDict},
 			{ok, X};
@@ -38,6 +38,11 @@ loop(St, {msg_from_client, _FromNick, _Channel, _Msg}) ->
 	Nicks = dict:fetch(_Channel, St#server_st.nick_to_channel),
 	lists:map(fun(_ToNick) -> sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) end, Nicks),
 	{ok, St};
+
+loop(St, {leave, _Nick, _Channel}) ->
+	NewDict = dict:update(_Channel, fun(_List) -> lists:delete(_Nick, _List) end, St#server_st.nick_to_channel),
+	X = St#server_st{nick_to_channel = NewDict},
+	{ok, X};
 
 loop(St, _Msg) -> 
     {ok, St}. 
