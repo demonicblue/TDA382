@@ -88,8 +88,15 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
-    genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
-     {ok, St} ;
+    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
+    case lists:any(Equals, St#cl_st.channels) of
+        true ->
+            genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
+            {ok, St} ;
+        false ->
+            {{error, user_not_joined, "Must join channel first"}, St}
+    end;
+     
 
 
 %%%%%%%%%%%%%%
