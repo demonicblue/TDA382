@@ -35,6 +35,11 @@ loop(St, {msg_from_client, _Nick, _Channel, _Msg}) ->
 	distribute(St#server_st.nick_to_channel, _Channel, _Nick, _Msg),
 	{ok, St};
 
+loop(St, {leave, _Nick, _Channel}) ->
+	NewDict = dict:update(_Channel, fun(_List) -> lists:delete(_Nick, _List) end, St#server_st.nick_to_channel),
+	X = St#server_st{nick_to_channel = NewDict},
+	{ok, X};
+
 loop(St, _Msg) -> 
     {ok, St}. 
 

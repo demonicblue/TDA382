@@ -77,9 +77,10 @@ loop(St, {leave, _Channel}) ->
             genserver:request(list_to_atom(St#cl_st.server), {leave, St#cl_st.nick, _Channel}),
             NewList = lists:delete(_Channel, St#cl_st.channels),
             NewState = St#cl_st{channels = NewList},
-            Return = {ok, NewState}
+            Return = {ok, NewState};
         false ->
-            Retur = {{error, user_not_joined, "User has not joined the channel!"}, St}
+            Return = {{error, user_not_joined, "User has not joined the channel!"}, St}
+    end,
 
     Return;
 
