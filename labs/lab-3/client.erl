@@ -97,7 +97,6 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
 %%% WhoIam
 %%%%%%%%%%%%%%
 loop(St, whoiam) ->
-    gen_server:call(list_to_atom(St#cl_st.gui), {msg_to_GUI, St#cl_st.channels, "CONNECTION ERROR"}),
     {St#cl_st.nick, St} ;
 
 %%%%%%%%%%
