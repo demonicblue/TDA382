@@ -32,18 +32,22 @@ loop(St, {connect, _Server}) ->
 %%%%%%%%%%%%%%%
 loop(St, disconnect) -> 
     case St#cl_st.server of
-    "" ->
-        Return = {{error, user_not_connected, "User is not connected to any server!"}, St};
-        
-    _ ->
-        Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
-        Return = case Result of
-            ok  ->  trace(["Client got ok"]),
-                    NewState = St#cl_st{server = ""},
-                    {ok, NewState};
-            error -> trace(["Client got error"]),
-                    {error, St}
-        end
+        "" ->
+            Return = {{error, user_not_connected, "User is not connected to any server!"}, St};
+            
+        _ ->
+            if St#cl_st.channels == [] -> 
+                Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
+                Return = case Result of
+                    ok  ->  trace(["Client got ok"]),
+                            NewState = St#cl_st{server = ""},
+                            {ok, NewState};
+                    error -> trace(["Client got error"]),
+                            {error, St}
+                end;
+            true ->
+                Return = {{error, leave_channels_first, "Leave channels before disconnecting!"}, St}
+            end
     end,
     Return; 
 
@@ -127,4 +131,4 @@ trace(Args) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName, nick = Nick, server = "" }.
+    #cl_st { gui = GUIName, nick = Nick, server = "", channels = [] }.
