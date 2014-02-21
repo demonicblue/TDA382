@@ -105,7 +105,8 @@ loop(St = #cl_st { gui = GUIName }, _MsgFromClient) ->
 % decomposed in the parts needed to tell the GUI to display
 % it in the right chat room.
 decompose_msg(_MsgFromClient) ->
-    {"", "", ""}.
+    %{"", "", ""}.
+    _MsgFromClient.
 
 catch_fatal(Cmd) ->
     case catch( Cmd() ) of
