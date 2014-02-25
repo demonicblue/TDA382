@@ -27,7 +27,7 @@ loop(St, {join, _Nick, _Channel}) ->
 	end,
 	X = St#server_st{nick_to_channel = NewDict},
 	%io:format(dict:fetch(_Channel, X#server_st.nick_to_channel)),
-	io:format("~p", [dict:fetch(_Nick, X#server_st.clients)]),
+	%io:format("~p", [dict:fetch(_Nick, X#server_st.clients)]),
 	{ok, X};
 
 loop(St, {msg_from_client, _FromNick, _Channel, _Msg}) ->
@@ -35,19 +35,22 @@ loop(St, {msg_from_client, _FromNick, _Channel, _Msg}) ->
 	%Nick = dict:fetch(_Nick, St#server_st.clients),
 	%distribute(St#server_st.nick_to_channel, _Channel, _Nick, _Msg),
 	%?debugMsg("Server: Sending messages to clients.."),
-	io:format("~p ~p ~p", [_FromNick, _Channel, _Msg]),
+	%io:format("~p ~p ~p", [_FromNick, _Channel, _Msg]),
 	F = fun () ->
 		Nicks = dict:fetch(_Channel, St#server_st.nick_to_channel),
 		lists:map(fun(_ToNick) -> sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) end, Nicks)
 	end,
-	%spawn(F),
-	F(),
+	spawn(F),
+	%F(),
 	{ok, St};
 
 loop(St, {leave, _Nick, _Channel}) ->
 	NewDict = dict:update(_Channel, fun(_List) -> lists:delete(_Nick, _List) end, St#server_st.nick_to_channel),
 	X = St#server_st{nick_to_channel = NewDict},
 	{ok, X};
+
+loop(St, {update_st, _NewSt}) ->
+	{ok, _NewSt};
 
 loop(St, _Msg) -> 
     {ok, St}. 
@@ -66,8 +69,8 @@ sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) ->
 				F = fun () ->
 					genserver:request(ClientId, {_Channel, _FromNick, _Msg})
 				end,
-				spawn(F)
-				%F()
+				%spawn(F)
+				F()
 			end
 	end,
 	_ToNick.

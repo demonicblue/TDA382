@@ -1,6 +1,6 @@
 -module(client).
 -export([loop/2, initial_state/2]).
-
+-include_lib("eunit/include/eunit.hrl").
 -include_lib("./defs.hrl").
 
 %%%%%%%%%%%%%%%
@@ -91,9 +91,14 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true ->
-            genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg}),
+            %?debugMsg("In client:msg_from_GUI"),
+            F = fun () ->
+                genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg})
+            end,
+            spawn(F),
             {ok, St} ;
         false ->
+            ?debugMsg("Client: Got error when sending"),
             {{error, user_not_joined, "Must join channel first"}, St}
     end;
      
