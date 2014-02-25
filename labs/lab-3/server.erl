@@ -40,8 +40,8 @@ loop(St, {msg_from_client, _FromNick, _Channel, _Msg}) ->
 		Nicks = dict:fetch(_Channel, St#server_st.nick_to_channel),
 		lists:map(fun(_ToNick) -> sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) end, Nicks)
 	end,
-	spawn(F),
-	%F(),
+	%spawn(F),
+	F(),
 	{ok, St};
 
 loop(St, {leave, _Nick, _Channel}) ->
@@ -69,8 +69,8 @@ sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) ->
 				F = fun () ->
 					genserver:request(ClientId, {_Channel, _FromNick, _Msg})
 				end,
-				%spawn(F)
-				F()
+				spawn(F)
+				%F()
 			end
 	end,
 	_ToNick.
