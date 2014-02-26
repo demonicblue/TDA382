@@ -56,9 +56,7 @@ loop(St, disconnect) ->
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
-    %Predicate that is used by the lists:any function to see if the channel is already present in the client state.
-    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
-    case lists:any(Equals, St#cl_st.channels) of
+    case lists:member(_Channel, St#cl_st.channels) of
         true -> 
             {{error, user_already_joined, "User has already joined this channel!"}, St};
         false -> 
@@ -72,8 +70,7 @@ loop(St,{join,_Channel}) ->
 %%%% Leave
 %%%%%%%%%%%%%%%
 loop(St, {leave, _Channel}) ->
-    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
-    case lists:any(Equals, St#cl_st.channels) of
+    case lists:member(_Channel, St#cl_st.channels) of
         true ->
             %Contact channel process to request a leave from the channel.
             genserver:request(list_to_atom(_Channel), {leave, St#cl_st.nick}),
@@ -88,8 +85,7 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
-    Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
-    case lists:any(Equals, St#cl_st.channels) of
+    case lists:member(_Channel, St#cl_st.channels) of
         true ->
             %Contact channel process to request sending a message.
             genserver:request(list_to_atom(_Channel), {msg_from_client, St#cl_st.nick, _Msg}),
