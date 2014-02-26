@@ -1,6 +1,5 @@
 -module(client).
 -export([loop/2, initial_state/2]).
--include_lib("eunit/include/eunit.hrl").
 -include_lib("./defs.hrl").
 
 %%%%%%%%%%%%%%%
@@ -16,10 +15,11 @@ loop(St, {connect, _Server}) ->
             _ ->
                 Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
                 Return = case Result of
-                     ok     ->  trace(["Client:got ok"]),
-                                NewState = St#cl_st{server = _Server},
-                                {ok, NewState};
-                     error  ->  {{error, user_already_connected, "User already connected!"}, St}
+                     ok     ->
+                        NewState = St#cl_st{server = _Server},
+                        {ok, NewState};
+                     {error, user_already_connected}  -> 
+                        {{error, user_already_connected, "User already connected!"}, St}
                 end
         end;
     true ->
@@ -39,10 +39,10 @@ loop(St, disconnect) ->
             if St#cl_st.channels == [] -> 
                 Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
                 Return = case Result of
-                    ok  ->  trace(["Client got ok"]),
+                    ok  ->
                             NewState = St#cl_st{server = ""},
                             {ok, NewState};
-                    error -> trace(["Client got error"]),
+                    error ->
                             {{error, server_not_reached, "Could not reach the server!"}, St}
                 end;
             true ->
@@ -91,15 +91,9 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true ->
-            %?debugMsg("In client:msg_from_GUI"),
-            F = fun () ->
-                genserver:request(list_to_atom(_Channel), {msg_from_client, St#cl_st.nick, _Msg})
-            end,
-            %spawn(F),
-            F(),
+            genserver:request(list_to_atom(_Channel), {msg_from_client, St#cl_st.nick, _Msg}),
             {ok, St} ;
         false ->
-            ?debugMsg("Client: Got error when sending"),
             {{error, user_not_joined, "Must join channel first"}, St}
     end;
      
@@ -138,7 +132,6 @@ loop(St = #cl_st { gui = GUIName }, _MsgFromClient) ->
 % decomposed in the parts needed to tell the GUI to display
 % it in the right chat room.
 decompose_msg(_MsgFromClient) ->
-    %{"", "", ""}.
     _MsgFromClient.
 
 catch_fatal(Cmd) ->
@@ -146,11 +139,6 @@ catch_fatal(Cmd) ->
         {'EXIT',Reason} ->
             trace(["EXIT:", Reason]),
             error ;
-        {error, nick_taken} -> 
-            trace(["Mammas bröd"]),
-            error;
-
-
         {error, _, Msg} ->
             trace(["Error:", Msg]),
             error ;
