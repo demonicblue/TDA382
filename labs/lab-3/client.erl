@@ -7,13 +7,16 @@
 %%%%%%%%%%%%%%%
 loop(St, {connect, _Server}) ->
     
+    %If the server is already present in the client state, don't connect again.
     if St#cl_st.server /= "" ->
         {{error, user_already_connected, "User already connected"}, St};
     true ->
         case whereis(list_to_atom(_Server)) of
+            %If the server atom couldn't be found, server couldn't be reached.
             undefined ->
                 {{error, server_not_reached, "Server could not be reached."}, St};
             _ ->
+                %Contact server to request a connection.
                 Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
                 case Result of
                      ok     ->
@@ -29,12 +32,15 @@ loop(St, {connect, _Server}) ->
 %%%% Disconnect
 %%%%%%%%%%%%%%%
 loop(St, disconnect) -> 
+    %If there's no server present in the client state, disconnect shouldn't work.
     if St#cl_st.server == "" ->
         {{error, user_not_connected, "User is not connected to any server!"}, St}; 
     true ->
+        %If the client hasn't left the channels, return error.
         if St#cl_st.channels /= [] ->
             {{error, leave_channels_first, "Leave channels before disconnecting!"}, St};
         true ->
+            %Contact server to request disconnect from server.
             Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
             case Result of
                 ok  ->
@@ -50,11 +56,13 @@ loop(St, disconnect) ->
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
+    %Predicate that is used by the lists:any function to see if the channel is already present in the client state.
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true -> 
             {{error, user_already_joined, "User has already joined this channel!"}, St};
         false -> 
+            %Contact channel process to join channel.
             genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
             NewList = lists:append(St#cl_st.channels, [_Channel]),
             {ok, St#cl_st{channels = NewList}}
@@ -67,10 +75,12 @@ loop(St, {leave, _Channel}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true ->
+            %Contact channel process to request a leave from the channel.
             genserver:request(list_to_atom(_Channel), {leave, St#cl_st.nick}),
             NewList = lists:delete(_Channel, St#cl_st.channels),
             {ok, St#cl_st{channels = NewList}};
         false ->
+            %If channel is not present in the client state, leaving the channel shouldn't be possible.
             {{error, user_not_joined, "User has not joined the channel!"}, St}
     end;
 
@@ -81,9 +91,11 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true ->
+            %Contact channel process to request sending a message.
             genserver:request(list_to_atom(_Channel), {msg_from_client, St#cl_st.nick, _Msg}),
             {ok, St} ;
         false ->
+            %If user tries to send message to a channel that is not present in the client state then return error.
             {{error, user_not_joined, "Must join channel first"}, St}
     end;
      
@@ -121,8 +133,10 @@ loop(St = #cl_st { gui = GUIName }, _MsgFromClient) ->
 % decomposed in the parts needed to tell the GUI to display
 % it in the right chat room.
 decompose_msg(_MsgFromClient) ->
+    %Server already returns correct format of the message.
     _MsgFromClient.
 
+%Catch function used for eventual errors.
 catch_fatal(Cmd) ->
     case catch( Cmd() ) of
         {'EXIT',Reason} ->
