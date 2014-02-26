@@ -1,4 +1,4 @@
-all: gui client server cchat
+all: gui client server cchat channel
 
 cchat:  cchat.erl server.beam gui.beam
 	erl -compile cchat.erl
@@ -8,6 +8,9 @@ server: server.erl defs.hrl genserver
 
 client: client.erl defs.hrl lexgrm genserver
 	erl -compile client.erl
+
+channel: channel.erl defs.hrl genserver
+	erl -compile channel.erl
 
 gui: gui.erl genserver
 	erl -compile gui.erl

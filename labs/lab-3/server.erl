@@ -19,16 +19,17 @@ loop(St, {disconnect, _Nick}) ->
 	{ok, X};
 
 loop(St, {join, _Nick, _Channel}) ->
-	case dict:is_key(_Channel, St#server_st.nick_to_channel) of
+	ClientId = dict:fetch(_Nick, St#server_st.clients),
+	case dict:is_key(_Channel, St#server_st.channels) of
 		false ->
-			NewDict = dict:store(_Channel, [_Nick], St#server_st.nick_to_channel);
+			ChannelId = genserver:start(list_to_atom(_Channel), channel:initial_state(_Channel, _Nick, ClientId), 
+                    fun channel:loop/2),
+			NewDict = dict:store(_Channel, ChannelId, St#server_st.channels),
+			{ok, St#server_st{channels = NewDict}};
 		true ->
-			NewDict = dict:update(_Channel, fun(_List) -> lists:append(_List, [_Nick]) end, St#server_st.nick_to_channel)
-	end,
-	X = St#server_st{nick_to_channel = NewDict},
-	%io:format(dict:fetch(_Channel, X#server_st.nick_to_channel)),
-	%io:format("~p", [dict:fetch(_Nick, X#server_st.clients)]),
-	{ok, X};
+			genserver:request(list_to_atom(_Channel), {join, _Nick, ClientId}),
+			{ok, St}
+	end;
 
 loop(St, {msg_from_client, _FromNick, _Channel, _Msg}) ->
 	%Send message to all clients in _Channel
@@ -48,9 +49,6 @@ loop(St, {leave, _Nick, _Channel}) ->
 	NewDict = dict:update(_Channel, fun(_List) -> lists:delete(_Nick, _List) end, St#server_st.nick_to_channel),
 	X = St#server_st{nick_to_channel = NewDict},
 	{ok, X};
-
-loop(St, {update_st, _NewSt}) ->
-	{ok, _NewSt};
 
 loop(St, _Msg) -> 
     {ok, St}. 
@@ -75,11 +73,5 @@ sendMsg(_ToNick, _FromNick, _Channel, _Msg, St) ->
 	end,
 	_ToNick.
 
-distribute([X|XS], _Channel, _Nick, _Msg) ->
-	distribute(XS, _Channel, _Nick, _Msg),
-	ok;
-distribute([], _Channel, _Nick, _Msg) ->
-	ok.
-
 initial_state(_Server) ->
-    #server_st{name = "shire", clients = dict:new(), nick_to_channel = dict:new()}.
+    #server_st{name = "shire", clients = dict:new(), nick_to_channel = dict:new(), channels = dict:new()}.

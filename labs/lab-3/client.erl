@@ -74,7 +74,7 @@ loop(St, {leave, _Channel}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true ->
-            genserver:request(list_to_atom(St#cl_st.server), {leave, St#cl_st.nick, _Channel}),
+            genserver:request(list_to_atom(_Channel), {leave, St#cl_st.nick}),
             NewList = lists:delete(_Channel, St#cl_st.channels),
             NewState = St#cl_st{channels = NewList},
             Return = {ok, NewState};
@@ -93,9 +93,10 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
         true ->
             %?debugMsg("In client:msg_from_GUI"),
             F = fun () ->
-                genserver:request(list_to_atom(St#cl_st.server), {msg_from_client, St#cl_st.nick, _Channel, _Msg})
+                genserver:request(list_to_atom(_Channel), {msg_from_client, St#cl_st.nick, _Msg})
             end,
-            spawn(F),
+            %spawn(F),
+            F(),
             {ok, St} ;
         false ->
             ?debugMsg("Client: Got error when sending"),
