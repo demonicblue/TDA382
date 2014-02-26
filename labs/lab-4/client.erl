@@ -2,6 +2,23 @@
 -export([loop/2, initial_state/2]).
 -include_lib("./defs.hrl").
 
+loop(St, {connect, {_Server, _Machine}}) ->
+    if St#cl_st.server /= "" ->
+        {{error, user_already_connected, "User already connected"}, St};
+    true ->
+        trace(["Trying to connect to node: ", _Server, _Machine]),
+        Result = catch_fatal(fun() -> genserver:request({list_to_atom(_Server), list_to_atom(_Machine)}, {connect, self(), St#cl_st.nick}) end),
+        case Result of
+        ok ->
+            NewState = St#cl_st{server = _Server},
+            {ok, NewState};
+        error ->
+            {{error, server_not_reached, "Could not reach server!"}, St};
+        {error, user_already_connected} ->
+            {{error, user_already_connected, "User already connected!"}, St}
+        end
+    end;
+
 %%%%%%%%%%%%%%%
 %%%% Connect
 %%%%%%%%%%%%%%%
@@ -150,4 +167,4 @@ trace(Args) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName, nick = Nick, server = "", channels = [] }.
+    #cl_st { gui = GUIName, nick = Nick, server = "", machine = "", channels = [] }.
