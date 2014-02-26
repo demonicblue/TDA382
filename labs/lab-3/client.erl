@@ -7,49 +7,44 @@
 %%%%%%%%%%%%%%%
 loop(St, {connect, _Server}) ->
     
-    if St#cl_st.server == "" ->
-
+    if St#cl_st.server /= "" ->
+        {{error, user_already_connected, "User already connected"}, St};
+    true ->
         case whereis(list_to_atom(_Server)) of
             undefined ->
-                Return = {{error, server_not_reached, "Server could not be reached."}, St};
+                {{error, server_not_reached, "Server could not be reached."}, St};
             _ ->
                 Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
-                Return = case Result of
+                case Result of
                      ok     ->
                         NewState = St#cl_st{server = _Server},
                         {ok, NewState};
                      {error, user_already_connected}  -> 
                         {{error, user_already_connected, "User already connected!"}, St}
                 end
-        end;
-    true ->
-        Return = {{error, user_already_connected, "User already connected"}, St}
-    end,
-    Return ;
+        end
+    end;
 
 %%%%%%%%%%%%%%%
 %%%% Disconnect
 %%%%%%%%%%%%%%%
 loop(St, disconnect) -> 
-    case St#cl_st.server of
-        "" ->
-            Return = {{error, user_not_connected, "User is not connected to any server!"}, St};
-            
-        _ ->
-            if St#cl_st.channels == [] -> 
-                Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
-                Return = case Result of
-                    ok  ->
-                            NewState = St#cl_st{server = ""},
-                            {ok, NewState};
-                    error ->
-                            {{error, server_not_reached, "Could not reach the server!"}, St}
-                end;
-            true ->
-                Return = {{error, leave_channels_first, "Leave channels before disconnecting!"}, St}
+    if St#cl_st.server == "" ->
+        {{error, user_not_connected, "User is not connected to any server!"}, St}; 
+    true ->
+        if St#cl_st.channels /= [] ->
+            {{error, leave_channels_first, "Leave channels before disconnecting!"}, St};
+        true ->
+            Result = catch_fatal(fun() -> genserver:request(list_to_atom(St#cl_st.server), {disconnect, St#cl_st.nick}) end),
+            case Result of
+                ok  ->
+                        NewState = St#cl_st{server = ""},
+                        {ok, NewState};
+                error ->
+                        {{error, server_not_reached, "Could not reach the server!"}, St}
             end
-    end,
-    Return; 
+        end
+    end;
 
 %%%%%%%%%%%%%%
 %%% Join
@@ -58,14 +53,12 @@ loop(St,{join,_Channel}) ->
     Equals = fun(X) -> if X == _Channel -> true; true -> false end end,
     case lists:any(Equals, St#cl_st.channels) of
         true -> 
-            Return = {{error, user_already_joined, "User has already joined this channel!"}, St};
+            {{error, user_already_joined, "User has already joined this channel!"}, St};
         false -> 
             genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
             NewList = lists:append(St#cl_st.channels, [_Channel]),
-            NewState = St#cl_st{channels = NewList},
-            Return = {ok, NewState}
-    end,
-    Return;
+            {ok, St#cl_st{channels = NewList}}
+    end;
 
 %%%%%%%%%%%%%%%
 %%%% Leave
@@ -76,13 +69,10 @@ loop(St, {leave, _Channel}) ->
         true ->
             genserver:request(list_to_atom(_Channel), {leave, St#cl_st.nick}),
             NewList = lists:delete(_Channel, St#cl_st.channels),
-            NewState = St#cl_st{channels = NewList},
-            Return = {ok, NewState};
+            {ok, St#cl_st{channels = NewList}};
         false ->
-            Return = {{error, user_not_joined, "User has not joined the channel!"}, St}
-    end,
-
-    Return;
+            {{error, user_not_joined, "User has not joined the channel!"}, St}
+    end;
 
 %%%%%%%%%%%%%%%%%%%%%
 %%% Sending messages
@@ -109,15 +99,14 @@ loop(St, whoiam) ->
 %%% Nick
 %%%%%%%%%%
 loop(St,{nick,_Nick}) ->
-    X = St#cl_st{nick = _Nick},
-    {ok, X} ;
+    NewState = St#cl_st{nick = _Nick},
+    {ok, NewState} ;
 
 %%%%%%%%%%%%%
 %%% Debug
 %%%%%%%%%%%%%
 loop(St, debug) ->
-    io:format("Contents of list: ~p\n", [St#cl_st.channels]),
-    {St, St} ;
+    {ok, St} ;
 
 %%%%%%%%%%%%%%%%%%%%%
 %%%% Incoming message
