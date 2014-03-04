@@ -149,6 +149,13 @@ decompose_msg(_MsgFromClient) ->
     %Server already returns correct format of the message.
     _MsgFromClient.
 
+request(St, Data) ->
+    if St#cl_st.machine == "" ->
+        genserver:request(St#cl_st.server, Data);
+    true ->
+        genserver:request( {list_to_atom(St#cl_st.server), list_to_atom(St#cl_st.machine)}, Data)
+    end.
+
 %Catch function used for eventual errors.
 catch_fatal(Cmd) ->
     case catch( Cmd() ) of
