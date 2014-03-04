@@ -3,13 +3,9 @@
 -include_lib("./defs.hrl").
 
 loop(St, {msg_from_client, _FromNick, _Msg}) ->
-	F = fun () ->
-		Channel = St#channel_st.name,
-		%Use map-function to send message to all clients in the channel.
-		dict:map(fun(_ToNick, _ClientId) ->  send_msg(_FromNick, _ToNick, _ClientId, Channel, _Msg) end, St#channel_st.clients)
-	end,
-	%Spawn new process for each request.
-	spawn(F),
+	Channel = St#channel_st.name,
+	%Use map-function to send message to all clients in the channel.
+	dict:map(fun(_ToNick, _ClientId) ->  send_msg(_FromNick, _ToNick, _ClientId, Channel, _Msg) end, St#channel_st.clients),
 	{ok, St};
 
 loop(St, {join, _Nick, _ClientId}) ->
@@ -31,7 +27,11 @@ send_msg(_FromNick, _ToNick, _ClientId, _Channel, _Msg) ->
 	if _ToNick == _FromNick ->
 		ok;
 	true ->
-		genserver:request(_ClientId, {_Channel, _FromNick, _Msg})
+		F = fun () ->
+			genserver:request(_ClientId, {_Channel, _FromNick, _Msg})
+		end,
+		% Spawn a new process for each request	
+		spawn(F)
 	end,
 	ok.
 
