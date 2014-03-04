@@ -1,6 +1,7 @@
 -module(channel).
 -export([loop/2, initial_state/3]).
 -include_lib("./defs.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 loop(St, {msg_from_client, _FromNick, _Msg}) ->
 	Channel = St#channel_st.name,
@@ -13,6 +14,8 @@ loop(St, {join, _Nick, _ClientId}) ->
 	case dict:find(_Nick, St#channel_st.clients) of
 		error ->
 			NewDict = dict:store(_Nick, _ClientId, St#channel_st.clients),
+			%io:format("~p", [_ClientId]),
+			?debugVal(_ClientId),
 			{ok, St#channel_st{clients = NewDict}};
 		{ok, _} ->
 			{error, St}
@@ -27,8 +30,14 @@ send_msg(_FromNick, _ToNick, _ClientId, _Channel, _Msg) ->
 	if _ToNick == _FromNick ->
 		ok;
 	true ->
+		Machine = node(_ClientId),
+		if Machine == nonode@nohost ->
+			Client = _ClientId;
+		true ->
+			Client = {_ClientId, Machine}
+		end,
 		F = fun () ->
-			genserver:request(_ClientId, {_Channel, _FromNick, _Msg})
+			genserver:request(Client, {_Channel, _FromNick, _Msg})
 		end,
 		% Spawn a new process for each request	
 		spawn(F)
