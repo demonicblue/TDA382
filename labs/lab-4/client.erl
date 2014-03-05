@@ -12,7 +12,7 @@ loop(St, {connect, {_Server, _Machine}}) ->
         Result = catch_fatal(fun() -> genserver:request({list_to_atom(_Server), list_to_atom(_Machine)}, {connect, self(), St#cl_st.nick}) end),
         case Result of
         ok ->
-            NewState = St#cl_st{server = _Server, machine = _Machine},
+            NewState = St#cl_st{server = {list_to_atom(_Server), list_to_atom(_Machine)}},
             {ok, NewState};
         error ->
             {{error, server_not_reached, "Could not reach server!"}, St};
@@ -60,10 +60,10 @@ loop(St, disconnect) ->
             {{error, leave_channels_first, "Leave channels before disconnecting!"}, St};
         true ->
             %Contact server to request disconnect from server.
-            Result = catch_fatal(fun() -> request(St, {disconnect, St#cl_st.nick}) end),
+            Result = catch_fatal(fun() -> genserver:request(St#cl_st.server, {disconnect, St#cl_st.nick}) end),
             case Result of
                 ok  ->
-                        NewState = St#cl_st{server = "", machine = ""},
+                        NewState = St#cl_st{server = ""},
                         {ok, NewState};
                 error ->
                         {{error, server_not_reached, "Could not reach the server!"}, St}
@@ -81,7 +81,7 @@ loop(St,{join,_Channel}) ->
         false -> 
             %Contact channel process to join channel.
             %genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
-            request(St, {join, St#cl_st.nick, _Channel}),
+            genserver:request(St#cl_st.server, {join, St#cl_st.nick, _Channel}),
             NewList = lists:append(St#cl_st.channels, [_Channel]),
             {ok, St#cl_st{channels = NewList}}
     end;
@@ -93,7 +93,12 @@ loop(St, {leave, _Channel}) ->
     case lists:member(_Channel, St#cl_st.channels) of
         true ->
             %Contact channel process to request a leave from the channel.
-            request(St, _Channel, {leave, St#cl_st.nick}),
+            Channel = list_to_atom(_Channel),
+            if node(Channel) == nonode@nohost ->
+                genserver:request(Channel, {leave, St#cl_st.nick});
+            true ->
+                genserver:request({Channel, element(2, St#cl_st.server)}, {leave, St#cl_st.nick})
+            end,
             NewList = lists:delete(_Channel, St#cl_st.channels),
             {ok, St#cl_st{channels = NewList}};
         false ->
@@ -107,8 +112,13 @@ loop(St, {leave, _Channel}) ->
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
     case lists:member(_Channel, St#cl_st.channels) of
         true ->
+            Channel = list_to_atom(_Channel),
+            if node(Channel) == nonode@nohost ->
+                genserver:request(Channel, {msg_from_client, St#cl_st.nick, _Msg});
+            true ->
+                genserver:request({Channel, element(2, St#cl_st.server)}, {msg_from_client, St#cl_st.nick, _Msg})
+            end,
             %Contact channel process to request sending a message.
-            request(St, _Channel, {msg_from_client, St#cl_st.nick, _Msg}),
             {ok, St} ;
         false ->
             %If user tries to send message to a channel that is not present in the client state then return error.
@@ -127,8 +137,12 @@ loop(St, whoiam) ->
 %%% Nick
 %%%%%%%%%%
 loop(St,{nick,_Nick}) ->
-    NewState = St#cl_st{nick = _Nick},
-    {ok, NewState} ;
+    if St#cl_st.server == "" ->
+        NewState = St#cl_st{nick = _Nick},
+        {ok, NewState};
+    true ->
+        {{error, dinmamma, "Cannot change nick once connected"}, St}
+    end;
 
 %%%%%%%%%%%%%
 %%% Debug
@@ -152,20 +166,6 @@ decompose_msg(_MsgFromClient) ->
     %Server already returns correct format of the message.
     _MsgFromClient.
 
-request(St, Channel, Data) ->
-    if St#cl_st.machine == "" ->
-        genserver:request( list_to_atom(Channel), Data);
-    true ->
-        genserver:request( {list_to_atom(Channel), list_to_atom(St#cl_st.machine)}, Data)
-    end.
-
-request(St, Data) ->
-    if St#cl_st.machine == "" ->
-        genserver:request( list_to_atom(St#cl_st.server), Data);
-    true ->
-        genserver:request( {list_to_atom(St#cl_st.server), list_to_atom(St#cl_st.machine)}, Data)
-    end.
-
 %Catch function used for eventual errors.
 catch_fatal(Cmd) ->
     case catch( Cmd() ) of
@@ -184,4 +184,4 @@ trace(Args) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName, nick = Nick, server = "", machine = "", channels = [] }.
+    #cl_st { gui = GUIName, nick = Nick, server = "", channels = [] }.

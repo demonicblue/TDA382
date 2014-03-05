@@ -4,6 +4,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 loop(St, {msg_from_client, _FromNick, _Msg}) ->
+	?debugMsg("I'm in channel now"),
 	Channel = St#channel_st.name,
 	%Use map-function to send message to all clients in the channel.
 	dict:map(fun(_ToNick, _ClientId) ->  send_msg(_FromNick, _ToNick, _ClientId, Channel, _Msg) end, St#channel_st.clients),
