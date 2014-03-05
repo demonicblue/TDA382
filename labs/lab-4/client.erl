@@ -39,7 +39,7 @@ loop(St, {connect, _Server}) ->
                 Result = catch_fatal(fun() -> genserver:request(list_to_atom(_Server), {connect, self(), St#cl_st.nick}) end),
                 case Result of
                      ok     ->
-                        NewState = St#cl_st{server = _Server},
+                        NewState = St#cl_st{server = list_to_atom(_Server)},
                         {ok, NewState};
                      {error, user_already_connected}  -> 
                         {{error, user_already_connected, "User already connected!"}, St}
@@ -56,9 +56,8 @@ loop(St, disconnect) ->
         {{error, user_not_connected, "User is not connected to any server!"}, St}; 
     true ->
         %If the client hasn't left the channels, return error.
-        if St#cl_st.channels /= [] ->
-            {{error, leave_channels_first, "Leave channels before disconnecting!"}, St};
-        true ->
+        case dict:size(St#cl_st.channels) of
+        0 ->
             %Contact server to request disconnect from server.
             Result = catch_fatal(fun() -> genserver:request(St#cl_st.server, {disconnect, St#cl_st.nick}) end),
             case Result of
@@ -67,40 +66,44 @@ loop(St, disconnect) ->
                         {ok, NewState};
                 error ->
                         {{error, server_not_reached, "Could not reach the server!"}, St}
-            end
-        end
+            end;
+        _ ->
+            {{error, leave_channels_first, "Leave channels before disconnecting!"}, St}
+        end 
     end;
 
 %%%%%%%%%%%%%%
 %%% Join
 %%%%%%%%%%%%%%
 loop(St,{join,_Channel}) ->
-    case lists:member(_Channel, St#cl_st.channels) of
+    case dict:is_key(_Channel, St#cl_st.channels) of
         true -> 
             {{error, user_already_joined, "User has already joined this channel!"}, St};
         false -> 
             %Contact channel process to join channel.
             %genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
             genserver:request(St#cl_st.server, {join, St#cl_st.nick, _Channel}),
-            NewList = lists:append(St#cl_st.channels, [_Channel]),
-            {ok, St#cl_st{channels = NewList}}
+            %NewList = lists:append(St#cl_st.channels, [_Channel]),
+            case St#cl_st.server of
+                {_, Machine} ->
+                    NewDict = dict:store(_Channel, {list_to_atom(_Channel), Machine}, St#cl_st.channels);
+                _ ->
+                    NewDict = dict:store(_Channel, list_to_atom(_Channel), St#cl_st.channels)
+            end,
+            {ok, St#cl_st{channels = NewDict}}
     end;
 
 %%%%%%%%%%%%%%%
 %%%% Leave
 %%%%%%%%%%%%%%%
 loop(St, {leave, _Channel}) ->
-    case lists:member(_Channel, St#cl_st.channels) of
+    case dict:is_key(_Channel, St#cl_st.channels) of
         true ->
             %Contact channel process to request a leave from the channel.
-            Channel = list_to_atom(_Channel),
-            if node(Channel) == nonode@nohost ->
-                genserver:request(Channel, {leave, St#cl_st.nick});
-            true ->
-                genserver:request({Channel, element(2, St#cl_st.server)}, {leave, St#cl_st.nick})
-            end,
-            NewList = lists:delete(_Channel, St#cl_st.channels),
-            {ok, St#cl_st{channels = NewList}};
+            Channel = dict:fetch(_Channel, St#cl_st.channels),
+            genserver:request(Channel, {leave, St#cl_st.nick}),
+            NewDict = dict:erase(_Channel, St#cl_st.channels),
+            {ok, St#cl_st{channels = NewDict}};
         false ->
             %If channel is not present in the client state, leaving the channel shouldn't be possible.
             {{error, user_not_joined, "User has not joined the channel!"}, St}
@@ -110,15 +113,11 @@ loop(St, {leave, _Channel}) ->
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, _Channel, _Msg}) ->
-    case lists:member(_Channel, St#cl_st.channels) of
+    case dict:is_key(_Channel, St#cl_st.channels) of
         true ->
-            Channel = list_to_atom(_Channel),
-            if node(Channel) == nonode@nohost ->
-                genserver:request(Channel, {msg_from_client, St#cl_st.nick, _Msg});
-            true ->
-                genserver:request({Channel, element(2, St#cl_st.server)}, {msg_from_client, St#cl_st.nick, _Msg})
-            end,
+            Channel = dict:fetch(_Channel, St#cl_st.channels),
             %Contact channel process to request sending a message.
+            genserver:request(Channel, {msg_from_client, St#cl_st.nick, _Msg}),
             {ok, St} ;
         false ->
             %If user tries to send message to a channel that is not present in the client state then return error.
@@ -184,4 +183,4 @@ trace(Args) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName, nick = Nick, server = "", channels = [] }.
+    #cl_st { gui = GUIName, nick = Nick, server = "", channels = dict:new() }.
