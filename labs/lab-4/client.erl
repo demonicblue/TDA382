@@ -9,9 +9,6 @@ loop(St, {connect, {_Server, _Machine}}) ->
         {{error, user_already_connected, "User already connected"}, St};
     true ->
         trace(["Trying to connect to node: ", _Server, _Machine]),
-        Node = node(),
-        ?debugVal(_Machine),
-        ?debugVal(Node),
         Result = catch_fatal(fun() -> genserver:request({list_to_atom(_Server), list_to_atom(_Machine)}, {connect, self(), St#cl_st.nick}) end),
         case Result of
         ok ->

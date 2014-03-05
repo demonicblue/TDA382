@@ -14,7 +14,6 @@ loop(St, {join, _Nick, _ClientId}) ->
 	case dict:find(_Nick, St#channel_st.clients) of
 		error ->
 			NewDict = dict:store(_Nick, _ClientId, St#channel_st.clients),
-			%io:format("~p", [_ClientId]),
 			?debugVal(_ClientId),
 			{ok, St#channel_st{clients = NewDict}};
 		{ok, _} ->
@@ -30,19 +29,19 @@ send_msg(_FromNick, _ToNick, _ClientId, _Channel, _Msg) ->
 	if _ToNick == _FromNick ->
 		ok;
 	true ->
-		Machine = node(_ClientId),
-		if Machine == nonode@nohost ->
-			Client = _ClientId;
-		true ->
-			Client = {_ClientId, Machine}
-		end,
 		F = fun () ->
-			genserver:request(Client, {_Channel, _FromNick, _Msg})
+			request(_ClientId, {_Channel, _FromNick, _Msg})
 		end,
 		% Spawn a new process for each request	
 		spawn(F)
 	end,
 	ok.
+
+request({Client, Machine}, Data) ->
+	genserver:request({Client, Machine}, Data);
+
+request(Client, Data) ->
+	genserver:request(Client, Data).
 
 initial_state(_Name, _Nick, _ClientId) ->
 	%Add the first client that wanted to join the channel.
