@@ -81,9 +81,8 @@ loop(St,{join,_Channel}) ->
             {{error, user_already_joined, "User has already joined this channel!"}, St};
         false -> 
             %Contact channel process to join channel.
-            %genserver:request(list_to_atom(St#cl_st.server), {join, St#cl_st.nick, _Channel}),
             genserver:request(St#cl_st.server, {join, St#cl_st.nick, _Channel}),
-            %NewList = lists:append(St#cl_st.channels, [_Channel]),
+            %Store the channel for later. Making sure we store the machine if the server is on a node.
             case St#cl_st.server of
                 {_, Machine} ->
                     NewDict = dict:store(_Channel, {list_to_atom(_Channel), Machine}, St#cl_st.channels);

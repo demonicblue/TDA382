@@ -28,18 +28,12 @@ send_msg(_FromNick, _ToNick, _ClientId, _Channel, _Msg) ->
 		ok;
 	true ->
 		F = fun () ->
-			request(_ClientId, {_Channel, _FromNick, _Msg})
+			genserver:request(_ClientId, {_Channel, _FromNick, _Msg})
 		end,
 		% Spawn a new process for each request	
 		spawn(F)
 	end,
 	ok.
-
-request({Client, Machine}, Data) ->
-	genserver:request({Client, Machine}, Data);
-
-request(Client, Data) ->
-	genserver:request(Client, Data).
 
 initial_state(_Name, _Nick, _ClientId) ->
 	%Add the first client that wanted to join the channel.
