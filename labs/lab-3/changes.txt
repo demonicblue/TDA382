@@ -1,0 +1,2 @@
+The only change in this submission is in channel.erl .
+I hope we still get out 8 points for this lab since we discussed that out rejection was only a mistake.
